@@ -17,20 +17,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - uses: prefix-dev/setup-pixi@v0.8.2
         with:
-          pixi-version: v0.27.1
+          pixi-version: v0.41.1
           environments: ${{ matrix.environment }}
 
       - name: Run tests
         run: |
             pixi run generate-predictions
-            pixi run check-generated-predictions
-            pixi run build-calibration-curve
-            pixi run different-calibration-curves
-            pixi run miscalibration-under-over-fit
-            pixi run miscalibration-reweighting
-            pixi run cost-sensitive-learning
+            pixi run -e doc convert-to-executed-notebooks
 
       - name: Test if we can build the documentation
         if: matrix.os == 'ubuntu-latest'
