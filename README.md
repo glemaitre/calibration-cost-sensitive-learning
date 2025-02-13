@@ -1,13 +1,16 @@
 # Probabilistic calibration and cost-sensitive learning
 
-Browse online:
+## Browse the contents online
 
-[![Launch JupyterLite](./book/images/jupyterbook_badge.svg 'Our JupyterBook
-website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/) [![Launch
-JupyterLite](./book/images/jupyterlite_badge.svg 'Our JupyterLite
+- [![Launch JupyterLite](./book/images/jupyterbook_badge.svg 'Our JupyterBook
+website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/)
+Static HTML with precomputed results.
+
+- [![Launch JupyterLite](./book/images/jupyterlite_badge.svg 'Our JupyterLite
 website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/jupyterlite/tree)
+In-browser interactive execution environment, no install needed.
 
-## Getting started
+## Local setup
 
 ### Install `pixi`
 
