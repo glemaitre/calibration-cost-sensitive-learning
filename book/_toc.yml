@@ -19,6 +19,9 @@ parts:
   - file: content/notebooks/different_calibration_curves
   - file: content/notebooks/miscalibration_under_over_fit
   - file: content/notebooks/miscalibration_reweighting
+
+- caption: The problem of imbalanced datasets
+  chapters:
   - file: content/notebooks/imbalanced_classification
   - file: content/notebooks/regularization_under_sampling
   - file: content/notebooks/computational_performance
