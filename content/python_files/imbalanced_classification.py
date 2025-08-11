@@ -161,7 +161,7 @@ model_exercise = LogisticRegression().fit(X_exercise, y_exercise)
 
 comparison_coef_exercise = pd.DataFrame(
     {
-        "Generative model": np.hstack((intercept, true_coef)),
+        "Data generating model": np.hstack((intercept, true_coef)),
         "Learned model": np.hstack(
             (model_exercise.intercept_, model_exercise.coef_.flatten())
         ),
@@ -374,7 +374,7 @@ print(classification_report(y, model.predict(X)))
 # %%
 comparison_coef = pd.DataFrame(
     {
-        "Generative model": np.hstack((intercept, true_coef)),
+        "Data generating model": np.hstack((intercept, true_coef)),
         "Learned model": np.hstack((model[-1].intercept_, model[-1].coef_.flatten())),
     },
     index=np.hstack(["intercept", model.feature_names_in_]),
@@ -397,112 +397,123 @@ _ = display.ax_.legend(loc="upper right")
 # translates into an uncalibrated model as seen in the calibration curve: our model
 # becomes too confident at predicting the rare event which is not surprising because it
 # is exactly what we were seeking for.
+#
+# ### Exercise
+#
+# Since our model is not well calibrated, as an exercise, re-calibrate the model using
+# the `sklearn.calibration.CalibratedClassifierCV` and check both the calibration curve,
+# the confusion matrix, and the classification report. In the `CalibratedClassifierCV`
+# set the parameter `method="isotonic"`.
+#
+# What do you observe?
 
 # %%
 from sklearn.calibration import CalibratedClassifierCV
 
-model = CalibratedClassifierCV(
-    make_pipeline(
-        RandomUnderSampler(sampling_strategy=0.1, random_state=0), LogisticRegression()
-    ),
-    method="isotonic",
-    ensemble=False,
-)
-model.fit(X, y)
+# %% [markdown]
+#
+# ### Solution
 
 # %%
-disp = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
+calibrated_model = CalibratedClassifierCV(model, method="isotonic")
+calibrated_model.fit(X, y)
+
+# %%
+display = CalibrationDisplay.from_estimator(
+    calibrated_model, X, y, n_bins=20, strategy="quantile"
+)
 
 axis_lim = (
-    min(disp.prob_true.min(), disp.prob_pred.min()) * 0.9,
-    max(disp.prob_true.max(), disp.prob_pred.max()) * 1.1,
+    min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
+    max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
 )
-_ = disp.ax_.set(xlim=axis_lim, ylim=axis_lim)
+_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 
 # %%
-print(classification_report(y, model.predict(X)))
+ConfusionMatrixDisplay.from_estimator(calibrated_model, X, y)
 
 # %%
-ConfusionMatrixDisplay.from_estimator(model, X, y)
+print(classification_report(y, calibrated_model.predict(X)))
 
 # %% [markdown]
 #
-# ## What you should do instead
+# So in terms of calibration, we see that the `CalibratedClassifierCV` is able to
+# calibrate the model. When looking at the confusion matrix, and the classification
+# report, we see that we reverted the effect of the resampling and we are back to
+# square one.
+#
+# So what is the lesson to learn here?
+#
+# Resampling act by artificially shifting the class distribution such that rare events
+# are more likely during the training process. It impacts the predicted outcomes and for
+# the simple case where we have a well-defined linear model, it is equivalent to shift
+# the intercept. However, the estimated probabilities are completely off the original
+# true probabilities.
+#
+# Therefore, it tell us that in terms of evaluation metrics, one should either use a
+# ranking metric (e.g. ROC AUC), a calibration metric (e.g. Brier score) such that the
+# influence of the decision cut-off threshold does not impact the evaluation metrics or
+# a curve representing a "thresholded" metric for all possible decision cut-off
+# thresholds. If we have a specific "thresholded" metric, then we need to need to tune
+# the decision cut-off threshold and not let it to be set at 0.5.
+#
+# The next section focus on setting the decision cut-off threshold when the evaluation
+# metric of interest is a "thresholded" metric.
+#
+# ## Choosing the decision cut-off threshold when "thresholded" metrics are used
+#
+# In this section, we show two useful meta-estimators available in scikit-learn to
+# set the decision cut-off threshold to change the predicted outcomes of a classifier.
+#
+# On the one hand, the `FixedThresholdClassifier` meta-estimator accepts an explicit
+# value that is used to threshold the estimated probabilities into predicted outcomes.
+# The value is defined by the user and is not optimized to maximize a specific metric.
+#
+# On the other hand, the `TunedThresholdClassifierCV` meta-estimator tunes the decision
+# cut-off threshold to maximize a specific metric. The metric is defined by the user and
+# is optimized using cross-validation.
+#
+# Let's first demonstrate how to use the `FixedThresholdClassifier` meta-estimator.
+# First, let's define a vanilla logistic regression model since we previously saw that
+# the resulting model is well calibrated when fitted on the original dataset.
 
 # %%
-from sklearn.model_selection import FixedThresholdClassifier
+model = LogisticRegression().fit(X, y)
 
-model = FixedThresholdClassifier(
-    LogisticRegression(), threshold=y.value_counts(normalize=True)[1]
-)
-model.fit(X, y)
-
-# %%
-disp = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
-
-axis_lim = (
-    min(disp.prob_true.min(), disp.prob_pred.min()) * 0.9,
-    max(disp.prob_true.max(), disp.prob_pred.max()) * 1.1,
-)
-_ = disp.ax_.set(xlim=axis_lim, ylim=axis_lim)
-
-# %%
-print(classification_report(y, model.predict(X)))
-
-# %%
-ConfusionMatrixDisplay.from_estimator(model, X, y)
+# %% [markdown]
+#
+# Now, let's say that we would like to get a model with a specific precision-recall
+# trade-off. For such analysis, we compute the precision and recall as a function of
+# the decision cut-off threshold.
 
 # %%
 import numpy as np
-from sklearn.metrics import get_scorer
-from sklearn.metrics._scorer import _CurveScorer
+from sklearn.metrics import make_scorer, precision_score, recall_score
 
-thresholds = np.linspace(0, 1, 15)
-precision_curve_scorer = _CurveScorer.from_scorer(
-    get_scorer("precision"), response_method="predict_proba", thresholds=thresholds
+# The following functionality is not yet implemented in scikit-learn and we use a bit
+# of private API to easily compute the precision and recall as a function of the
+# decision cut-off threshold. In the future, you can refer to the following PR that
+# implements such functionality:
+# https://github.com/scikit-learn/scikit-learn/pull/31338
+from sklearn.metrics._scorer import _CurveScorer as CurveScorer
+
+thresholds = np.linspace(0, 1, 50)
+precision_curve_scorer = CurveScorer.from_scorer(
+    make_scorer(precision_score, zero_division=0),
+    response_method="predict_proba",
+    thresholds=thresholds,
 )
-recall_curve_scorer = _CurveScorer.from_scorer(
-    get_scorer("recall"), response_method="predict_proba", thresholds=thresholds
+recall_curve_scorer = CurveScorer.from_scorer(
+    make_scorer(recall_score, zero_division=0),
+    response_method="predict_proba",
+    thresholds=thresholds,
 )
 
+# %%
 precision_scores, precision_thresholds = precision_curve_scorer(model, X, y)
 recall_scores, recall_thresholds = recall_curve_scorer(model, X, y)
 
 # %%
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots()
-
-ax.plot(precision_thresholds, precision_scores, marker="+", label="Precision")
-ax.plot(recall_thresholds, recall_scores, marker="+", label="Recall")
-
-# TODO: maybe plot precision recall curve + annotation
-# # Annotate threshold values on markers
-# for i, (threshold, score) in enumerate(zip(precision_thresholds, precision_scores)):
-#     ax.annotate(
-#         f"{threshold:.2f}",
-#         (threshold, score),
-#         textcoords="offset points",
-#         xytext=(5, 0),
-#         ha="left",
-#         fontsize=8,
-#     )
-
-# for i, (threshold, score) in enumerate(zip(recall_thresholds, recall_scores)):
-#     ax.annotate(
-#         f"{threshold:.2f}",
-#         (threshold, score),
-#         textcoords="offset points",
-#         xytext=(5, 0),
-#         ha="left",
-#         fontsize=8,
-#     )
-
-ax.set(xlabel="Threshold", ylabel="Score")
-ax.legend()
-
-# %%
-# Interactive version with plotly
 import plotly.graph_objects as go
 
 fig_plotly = go.Figure()
@@ -536,39 +547,109 @@ fig_plotly.update_layout(
 )
 fig_plotly.show()
 
-# %%
-from sklearn.metrics import PrecisionRecallDisplay
-
-PrecisionRecallDisplay.from_estimator(model, X, y)
-
-# %%
-from sklearn.metrics import make_scorer, precision_score, recall_score
-from sklearn.model_selection import TunedThresholdClassifierCV
-
-
-def maximize_precision_under_constrained_recall(y_true, y_pred, recall_level):
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-
-    if recall < recall_level:
-        return -np.inf
-    return precision
-
-
-model = TunedThresholdClassifierCV(
-    estimator=LogisticRegression(),
-    scoring=make_scorer(maximize_precision_under_constrained_recall, recall_level=0.3),
-    n_jobs=-1,
-).fit(X, y)
+# %% [markdown]
+#
+# Using these curves, we now can make a choice regarding a specific trade-off between
+# the level of recall and precision for our classifier. Here, let's select the threshold
+# for which the precision and recall curve intersect (i.e. ~0.09).
+#
+# ### Exercise
+#
+# Using the `FixedThresholdClassifier` meta-estimator, set the decision cut-off
+# threshold to the value for which the precision and recall curve intersect (i.e.
+# ~0.09). Check the calibration curve, the confusion matrix, and the classification
+# report.
+#
+# Is the model the resulting model well calibrated? What are the level of precision and
+# recall of the class of interest?
 
 # %%
-print(classification_report(y, model.predict(X)))
+from sklearn.model_selection import FixedThresholdClassifier
+
+
+# %% [markdown]
+#
+# ### Solution
+
+# %%
+threshold = 0.09
+model = FixedThresholdClassifier(LogisticRegression(), threshold=threshold).fit(X, y)
+
+# %%
+display = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
+
+axis_lim = (
+    min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
+    max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
+)
+_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 
 # %%
 ConfusionMatrixDisplay.from_estimator(model, X, y)
 
 # %%
-model.best_threshold_
+print(classification_report(y, model.predict(X)))
+
+# %% [markdown]
+#
+# As expected, we observe that the model is well calibrated because modifying the
+# decision cut-off threshold does not impact the calibration of the model.
+#
+# With the selected threshold, we expected to have similar precision and recall scores
+# for the class of interest. It is exactly what we observe.
+#
+# While it is an interesting exercise, setting the threshold manually is not the best
+# practice. It would be better to use the `TunedThresholdClassifierCV` meta-estimator
+# to tune the decision cut-off threshold to maximize a specific metric or a specific
+# trade-off using cross-validation.
+#
+# Below, we show a case where we want to maximize the precision score but such that
+# the model reach a minimum recall score. We therefore need to create a custom function
+# that can be used by the `TunedThresholdClassifierCV` meta-estimator.
+
 
 # %%
-# TODO: go and tune a business metric and link to the scikit-learn example.
+def maximize_precision_under_constrained_recall(y_true, y_pred, recall_level):
+    precision, recall = precision_score(y_true, y_pred), recall_score(y_true, y_pred)
+
+    if recall < recall_level:
+        # under a certain recall level, we cannot accept the model and thus return
+        # the worst possible score.
+        return -np.inf
+    return precision
+
+
+# %%
+from sklearn.model_selection import TunedThresholdClassifierCV
+
+# create a scorer that maximizes the precision but such that the recall is at least 0.3
+scoring = make_scorer(maximize_precision_under_constrained_recall, recall_level=0.3)
+model = TunedThresholdClassifierCV(
+    estimator=LogisticRegression(), scoring=scoring, n_jobs=-1
+).fit(X, y)
+
+# %%
+_ = ConfusionMatrixDisplay.from_estimator(model, X, y)
+
+# %%
+print(classification_report(y, model.predict(X)))
+
+# %% [markdown]
+#
+# Looking at the confusion matrix, we observe that we detect a certain number of rare
+# events. Looking into the classification report, we observe that the constraint set
+# on the recall is respected (i.e. the recall is 0.36). For such recall, the maximum
+# precision is 0.08. Now, let's check what is the decision cut-off threshold that was
+# found during the cross-validation procedure.
+
+# %%
+float(model.best_threshold_)
+
+# %% [markdown]
+#
+# Here, we chose to maximize a specific metric under a constraint. It is the best choice
+# when no "business" metric is known for the machine learning task at hand. However,
+# be aware that if you have a "business" metric available, then you should use it
+# together with the `TunedThresholdClassifierCV` meta-estimator. To see an example,
+# refer to the notebook entitled "Cost-sensitive learning to optimize a business
+# metrics" from this course.
