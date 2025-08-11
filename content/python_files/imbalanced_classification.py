@@ -3,48 +3,48 @@
 # # Imbalanced classification: pitfalls and solutions
 #
 # Imbalanced classification refers to issues where the balance of the class frequencies
-# in the target variable add extra challenges to the classification problem. We focus
-# on two particular issues related to imbalanced classification.
+# in the target variable creates additional challenges for the classification problem.
+# We focus on two particular issues related to imbalanced classification.
 #
-# The first issue is related to a large difference between the class frequencies in
-# the target variable. It means that the event of interest to predict is rare. As an
-# example, in fraud detection, the event of interest is a fraud and is by far less
-# common than legitimate transactions. In this notebook, we first focus on studying
-# this use case that has not been addressed properly in the scientific literature
-# apart from some recent works.
+# The first issue is related to a large difference between the class frequencies in the
+# target variable. It means that the event of interest to predict is rare. As an
+# example, in fraud detection, the event of interest is a fraud and is much less common
+# than legitimate transactions. In this notebook, we first focus on studying this use
+# case that researchers have not addressed properly in the scientific literature except
+# in recent works.
 #
-# The second issue is related to the fact that the data acquisition process does not
-# reflect the true class balance. It means that the class frequencies in the target
+# The second issue is related to the fact that the data acquisition process do not
+# reflect the true class balance. This means that the class frequencies in the target
 # variable are not representative of the true class balance. As an example, for medical
 # diagnosis, the data acquisition process may be biased towards patients with a rare
-# disease by collecting the same amount of patients with the disease and the same amount
-# of patients without the disease. Therefore, there is a need to correct this bias.
-# In the next notebook, we will focus on this issue.
+# disease by collecting equal numbers of patients with the disease and equal numbers of
+# patients without the disease. Therefore, there is a need to correct this bias. In the
+# next notebook, we will focus on this issue.
 #
 # ## Class imbalance: representative data acquisition with rare events of interest
 #
-# In real-world applications, it commonly happens that we are interested in predicting
-# rare events, e.g. frauds, rare diseases, rare climatic events, etc. Simplifying this
-# problem to a binary outcome, it means that the probability for this rare event to
-# happen is rather low in comparison to the probability of the rare event not to happen.
+# In real-world applications, we commonly need to predict rare events, e.g. frauds, rare
+# diseases, rare climatic events, etc. Simplifying this problem to a binary outcome, it
+# means that the probability for this rare event to happen is rather low in comparison
+# to the probability of the rare event not to happen.
 #
-# To later cover the implications of class imbalance, we first generate a synthetic
-# dataset for which we control the success rate of the positive class. The generative
-# process below is defined as follows:
+# To cover the implications of class imbalance, we first generate a synthetic dataset
+# for which we control the success rate of the positive class. We define the generative
+# process below as follows:
 #
-# - We generate a vector of coefficients `true_coef` of shape `(n_features,)` where
-#   each element is a standard normal random variable. In short, it is the true model
-#   that we would like to learn.
+# - We generate a vector of coefficients `true_coef` of shape `(n_features,)` where each
+#   element is a standard normal random variable. In short, it is the true model that we
+#   would like to learn.
 # - We generate a matrix of features `X` of shape `(n_samples, n_features)` where each
 #   column is a standard normal random variable.
 # - We compute the linear predictor `Z` as the dot product of the features and the
 #   vector of coefficients `true_coef`.
-# - The linear predictor `Z` is transformed into class probabilities using the sigmoid
+# - We transform the linear predictor `Z` into class probabilities using the sigmoid
 #   function. To create rare positive events, we shift the intercept of the sigmoid
 #   function.
-# - Finally, we generate a binary target variable `y` where each event is sampled by
+# - Finally, we generate a binary target variable `y` where we sample each event by
 #   drawing a sample from a binomial distribution with `n=1` and `p` being the
-#   probability of the positive class previously computed.
+#   probability of the positive class we previously computed.
 
 # %%
 import numpy as np
@@ -75,18 +75,17 @@ print(f"Class counts:\n {y.value_counts()}\n")
 
 # %% [markdown]
 #
-# Looking at the true target distribution, we therefore observe that the probability
-# for a sample to be the positive class with label 1 is rare (~2.5%). When it comes to
-# absolute counts, because we generated a 1,000,000 samples, the number of events of
-# interest is rather high (25,000).
+# Looking at the true target distribution, we therefore observe that the probability for
+# a sample to be the positive class with label 1 is rare (~2.5%). Regarding absolute
+# counts, because we generated 1,000,000 samples, the number of events of interest is
+# rather high (25,000).
 #
-# A particular challenge when dealing real-world class imbalance is that the number
-# of available samples of the rare event can be usually low even with a large number
-# of samples. Therefore, it is always important to check the absolute counts of the
-# rare event and if the dataset contains less than 1,000 samples of the rare event,
-# then you are exactly in the same situation as having a dataset with a low number of
-# samples with all related challenges (e.g. large variance of the estimator, weak
-# signal, etc.).
+# A particular challenge when dealing with real-world class imbalance is that the number
+# of available samples of the rare event can be usually low even with a large number of
+# samples. Therefore, it is always important to check the absolute counts of the rare
+# event and if the dataset contains less than 1,000 samples of the rare event, then you
+# are exactly in the same situation as having a dataset with a low number of samples
+# with all related challenges (e.g. large variance of the estimator, weak signal, etc.).
 #
 # ## Learning a predictive model
 #
@@ -126,9 +125,9 @@ _ = ax.set(
 #
 # ### Exercise
 #
-# Below, write a small function that embed the generative process that we defined above.
-# This time only generate 10,000 samples, train a logistic regression model and check
-# the learned model coefficients.
+# Below, write a small function that embeds the generative process that we defined
+# above. This time only generate 10,000 samples, train a logistic regression model and
+# check the learned model coefficients.
 #
 # Do you recover the true model coefficients? If not, what is the reason?
 
@@ -185,11 +184,11 @@ _ = ax.set(
 #   samples, the coefficients of the predictive model will get closer to the true
 #   coefficients.
 # - The predictive model should be well specified. In other words, if our predictive
-#   model is not flexible enough then it will underfit and not recover all the signal
-#   of the true model.
+#   model is not flexible enough then it will underfit and not recover all the signal of
+#   the true model.
 #
-# There is an additional assumption for which we need to study the the probabilities
-# estimated by our predictive model.
+# We need to study an additional assumption regarding the probabilities estimated by our
+# predictive model.
 
 # %%
 y_proba = model.predict_proba(X)
@@ -198,11 +197,10 @@ y_proba
 
 # %% [markdown]
 #
-# Our predictive model is capable of estimating the probabilities of the class of
-# interest (i.e. `p_hat(y=1)`). However, those numbers are estimated and does not
-# necessarily reflect the true probabilities. Here, we can compute the mean of the
-# estimated probabilities and check if we are close to the true probability of the
-# positive class.
+# Our predictive model estimates the probabilities of the class of interest (i.e.
+# `p_hat(y=1)`). However, we estimate those numbers and they do not necessarily reflect
+# the true probabilities. Here, we can compute the mean of the estimated probabilities
+# and check if we are close to the true probability of the positive class.
 
 # %%
 y_proba.mean() * 100
@@ -215,15 +213,14 @@ _ = y_proba.plot.hist(
 # %% [markdown]
 #
 # For our example, we are indeed close to the true frequency. The reason is that the
-# algorithm used `LogisticRegression` minimizes a "strictly proper" scoring rule. If not
-# using such loss function, they are also not theoretical guarantees that the estimated
-# probabilities will be close to the true
-# probabilities.
+# algorithm used `LogisticRegression` minimizes a "strictly proper" scoring rule. If we
+# do not use such a loss function, there are no theoretical guarantees that the
+# estimated probabilities will be close to the true probabilities.
 #
 # To conclude, the three above conditions work together: the strictly proper scoring
 # rule provides the right objective, the well-specified model ensures the true
-# coefficients exist within the model's parameter space, and infinite samples allow
-# the optimization to converge to the global optimum that corresponds to these true
+# coefficients exist within the model's parameter space, and infinite samples allow the
+# optimization to converge to the global optimum that corresponds to these true
 # coefficients.
 #
 # With these information, we would expect our classifier to be well calibrated. We can
@@ -237,9 +234,9 @@ display.plot()
 
 # %% [markdown]
 #
-# Since we have rare events, than only few samples have high probability and the
-# quantile-based strategy will not show a curve on the right side of the plot.
-# Let's zoom in on the plot to see the curve.
+# Since we have rare events, only a few samples have high probability and the
+# quantile-based strategy will not show a curve on the right side of the plot. Let's
+# zoom in on the plot to see the curve.
 
 # %%
 display.plot()
@@ -257,7 +254,7 @@ _ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 #
 # ## From probabilities to predicted outcomes (and to operational decisions)
 #
-# Up to this point of the notebook, we did not encountered any real issues due to the
+# Up to this point of the notebook, we have not encountered any real issues due to the
 # fact that our dataset is imbalanced: with enough samples, a well-specified model
 # minimizing a strictly proper scoring rule, everything seems to be fine.
 #
@@ -265,13 +262,12 @@ _ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 # setting. Indeed, the issue comes from when one seeks to translate the estimated
 # probabilities into predicted classification outcomes.
 #
-# In classification, the predicted outcomes correspond to the classes of the target.
-# As a general rule, the estimated probabilities of the classifier are processed to
-# provide a single outcome for each sample. In general the most probable class is
-# selected. For binary classification, it means that the probability is thresholded with
-# a decision cut-off value set at 0.5. In scikit-learn, it corresponds to the
-# `predict` method. Let's check the link between the `predict_proba` and `predict`
-# methods.
+# In classification, the predicted outcomes correspond to the classes of the target. As
+# a general rule, the estimated probabilities of the classifier are processed to provide
+# a single outcome for each sample. In general the most probable class is selected. For
+# binary classification, it means that the probability is thresholded with a decision
+# cut-off value set at 0.5. In scikit-learn, it corresponds to the `predict` method.
+# Let's check the link between the `predict_proba` and `predict` methods.
 
 # %%
 y_pred = model.predict(X)
@@ -281,7 +277,7 @@ np.allclose(y_pred, y_proba[:, 1] > 0.5)
 
 # %% [markdown]
 #
-# Predicted outcomes come with a set of metrics. Those metrics are derived from the
+# Predicted outcomes come with a set of metrics. We derive those metrics from the
 # confusion matrix indicating the number of true positives, true negatives, false
 # positives and false negatives.
 
@@ -292,15 +288,14 @@ _ = ConfusionMatrixDisplay.from_predictions(y, y_pred)
 
 # %% [markdown]
 #
-# From the confusion matrix above, we can already think of what bother practitioners
+# From the confusion matrix above, we can already understand what bothers practitioners
 # in practice: the number of true positives and thus the number of rare events detected
 # is zero.
 #
 # One could interpret that our model is therefore not able to detect rare events and
-# thus useless. In general, instead of using the confusion matrix, practitioners
-# used different metrics such as the precision, recall, etc. Let's check the
-# classification report available in scikit-learn that provides a summary of the
-# metrics.
+# thus useless. In general, instead of using the confusion matrix, practitioners use
+# different metrics such as the precision, recall, etc. Let's check the classification
+# report available in scikit-learn that provides a summary of the metrics.
 
 # %%
 from sklearn.metrics import classification_report
@@ -316,16 +311,16 @@ print(classification_report(y, model.predict(X)))
 #
 # ## What people naively do and why you should not do it
 #
-# The reason for not having any true positives in the confusion matrix boils down that
-# the estimated probabilities by the model for rare events are low because as previously
+# The reason for not having any true positives in the confusion matrix is that the
+# estimated probabilities by the model for rare events are low because as previously
 # shown, those events are rare!
 #
 # One way to counter this issue is to resample the dataset and balance the class
-# frequencies. It means that we artificially increase the number of samples of the
+# frequencies. This means that we artificially increase the number of samples of the
 # rare event and thus the likelihood of the rare event to be detected is higher. We
 # therefore boost the estimated probabilities related to those rare events.
 #
-# Let's use `imbalanced-learn` to resample the dataset before to train a logistic
+# Let's use `imbalanced-learn` to resample the dataset before training a logistic
 # regression model.
 
 # %%
@@ -360,9 +355,9 @@ print(classification_report(y, model.predict(X)))
 #
 # ### Exercise
 #
-# Plot the coefficients of the model and check whether or not the coefficients are
-# close to the true coefficients. Then, plot the calibration curve and check whether or
-# not the model is well calibrated. What do you observe?
+# Plot the coefficients of the model and check whether or not the coefficients are close
+# to the true coefficients. Then, plot the calibration curve and check whether or not
+# the model is well calibrated. What do you observe?
 
 # %%
 
@@ -439,31 +434,31 @@ print(classification_report(y, calibrated_model.predict(X)))
 #
 # So in terms of calibration, we see that the `CalibratedClassifierCV` is able to
 # calibrate the model. When looking at the confusion matrix, and the classification
-# report, we see that we reverted the effect of the resampling and we are back to
-# square one.
+# report, we see that we reverted the effect of the resampling and we are back to square
+# one.
 #
 # So what is the lesson to learn here?
 #
-# Resampling act by artificially shifting the class distribution such that rare events
+# Resampling acts by artificially shifting the class distribution such that rare events
 # are more likely during the training process. It impacts the predicted outcomes and for
-# the simple case where we have a well-defined linear model, it is equivalent to shift
-# the intercept. However, the estimated probabilities are completely off the original
-# true probabilities.
+# the simple case where we have a well-defined linear model, it is equivalent to
+# shifting the intercept. However, the estimated probabilities are completely off the
+# original true probabilities.
 #
-# Therefore, it tell us that in terms of evaluation metrics, one should either use a
+# Therefore, it tells us that in terms of evaluation metrics, one should either use a
 # ranking metric (e.g. ROC AUC), a calibration metric (e.g. Brier score) such that the
 # influence of the decision cut-off threshold does not impact the evaluation metrics or
 # a curve representing a "thresholded" metric for all possible decision cut-off
-# thresholds. If we have a specific "thresholded" metric, then we need to need to tune
-# the decision cut-off threshold and not let it to be set at 0.5.
+# thresholds. If we have a specific "thresholded" metric, then we need to tune the
+# decision cut-off threshold and not let it to be set at 0.5.
 #
-# The next section focus on setting the decision cut-off threshold when the evaluation
+# The next section focuses on setting the decision cut-off threshold when the evaluation
 # metric of interest is a "thresholded" metric.
 #
 # ## Choosing the decision cut-off threshold when "thresholded" metrics are used
 #
-# In this section, we show two useful meta-estimators available in scikit-learn to
-# set the decision cut-off threshold to change the predicted outcomes of a classifier.
+# In this section, we show two useful meta-estimators available in scikit-learn to set
+# the decision cut-off threshold to change the predicted outcomes of a classifier.
 #
 # On the one hand, the `FixedThresholdClassifier` meta-estimator accepts an explicit
 # value that is used to threshold the estimated probabilities into predicted outcomes.
@@ -599,13 +594,13 @@ print(classification_report(y, model.predict(X)))
 # for the class of interest. It is exactly what we observe.
 #
 # While it is an interesting exercise, setting the threshold manually is not the best
-# practice. It would be better to use the `TunedThresholdClassifierCV` meta-estimator
-# to tune the decision cut-off threshold to maximize a specific metric or a specific
+# practice. It would be better to use the `TunedThresholdClassifierCV` meta-estimator to
+# tune the decision cut-off threshold to maximize a specific metric or a specific
 # trade-off using cross-validation.
 #
-# Below, we show a case where we want to maximize the precision score but such that
-# the model reach a minimum recall score. We therefore need to create a custom function
-# that can be used by the `TunedThresholdClassifierCV` meta-estimator.
+# Below, we show a case where we want to maximize the precision score but such that the
+# model reach a minimum recall score. We therefore need to create a custom function that
+# can be used by the `TunedThresholdClassifierCV` meta-estimator.
 
 
 # %%
@@ -637,8 +632,8 @@ print(classification_report(y, model.predict(X)))
 # %% [markdown]
 #
 # Looking at the confusion matrix, we observe that we detect a certain number of rare
-# events. Looking into the classification report, we observe that the constraint set
-# on the recall is respected (i.e. the recall is 0.36). For such recall, the maximum
+# events. Looking into the classification report, we observe that the constraint set on
+# the recall is respected (i.e. the recall is 0.36). For such recall, the maximum
 # precision is 0.08. Now, let's check what is the decision cut-off threshold that was
 # found during the cross-validation procedure.
 
@@ -648,8 +643,8 @@ float(model.best_threshold_)
 # %% [markdown]
 #
 # Here, we chose to maximize a specific metric under a constraint. It is the best choice
-# when no "business" metric is known for the machine learning task at hand. However,
-# be aware that if you have a "business" metric available, then you should use it
-# together with the `TunedThresholdClassifierCV` meta-estimator. To see an example,
-# refer to the notebook entitled "Cost-sensitive learning to optimize a business
-# metrics" from this course.
+# when no "business" metric is known for the machine learning task at hand. However, be
+# aware that if you have a "business" metric available, then you should use it together
+# with the `TunedThresholdClassifierCV` meta-estimator. To see an example, refer to the
+# notebook entitled "Cost-sensitive learning to optimize a business metrics" from this
+# course.
