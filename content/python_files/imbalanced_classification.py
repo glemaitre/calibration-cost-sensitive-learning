@@ -68,7 +68,8 @@ n_samples, n_features = 1_000_000, 5
 true_coef = rng.normal(size=n_features)
 X = rng.normal(size=(n_samples, n_features))
 Z = X @ true_coef
-y = rng.binomial(n=1, p=expit(Z - 4))
+intercept = -4
+y = rng.binomial(n=1, p=expit(Z + intercept))
 
 # create pandas data structures for convenience
 X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(n_features)])
@@ -115,8 +116,11 @@ model = LogisticRegression().fit(X, y)
 
 # %%
 comparison_coef = pd.DataFrame(
-    {"Generative model": true_coef, "Learned model": model.coef_.flatten()},
-    index=model.feature_names_in_,
+    {
+        "Generative model": np.hstack((intercept, true_coef)),
+        "Learned model": np.hstack((model.intercept_, model.coef_.flatten())),
+    },
+    index=np.hstack(["intercept", model.feature_names_in_]),
 )
 ax = comparison_coef.plot.barh()
 _ = ax.set(
@@ -139,18 +143,22 @@ _ = ax.set(
 #
 # Do you recover the true model coefficients? If not, what is the reason?
 
+# %%
+
 # %% [markdown]
 #
 # ### Solution
 
 
+# %%
 def generate_imbalanced_dataset(n_samples=10_000, n_features=5, seed=0):
     rng = np.random.default_rng(seed)
 
     true_coef = rng.normal(size=n_features)
     X = rng.normal(size=(n_samples, n_features))
     Z = X @ true_coef
-    y = rng.binomial(n=1, p=expit(Z - 4))
+    intercept = -4
+    y = rng.binomial(n=1, p=expit(Z + intercept))
 
     # create pandas data structures for convenience
     X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(n_features)])
@@ -163,8 +171,13 @@ X_exercise, y_exercise = generate_imbalanced_dataset(n_samples=10_000)
 model_exercise = LogisticRegression().fit(X_exercise, y_exercise)
 
 comparison_coef_exercise = pd.DataFrame(
-    {"Generative model": true_coef, "Learned model": model_exercise.coef_.flatten()},
-    index=model_exercise.feature_names_in_,
+    {
+        "Generative model": np.hstack((intercept, true_coef)),
+        "Learned model": np.hstack(
+            (model_exercise.intercept_, model_exercise.coef_.flatten())
+        ),
+    },
+    index=np.hstack(["intercept", model_exercise.feature_names_in_]),
 )
 ax = comparison_coef_exercise.plot.barh()
 _ = ax.set(
@@ -245,7 +258,7 @@ axis_lim = (
     min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
     max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
 )
-display.ax_.set(xlim=axis_lim, ylim=axis_lim)
+_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 
 # %% [markdown]
 #
@@ -253,45 +266,151 @@ display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 # the diagonal line. It therefore means that the probabilities estimated by the model
 # are close to the true probabilities.
 #
-# ## The problem behind decision making
+# ## From probabilities to predicted outcomes (and to operational decisions)
+#
+# Up to this point of the notebook, we did not encountered any real issues due to the
+# fact that our dataset is imbalanced: with enough samples, a well-specified model
+# minimizing a strictly proper scoring rule, everything seems to be fine.
+#
+# However, practitioners have been complaining for many years regarding the above
+# setting. Indeed, the issue comes from when one seeks to translate the estimated
+# probabilities into predicted classification outcomes.
+#
+# In classification, the predicted outcomes correspond to the classes of the target.
+# As a general rule, the estimated probabilities of the classifier are processed to
+# provide a single outcome for each sample. In general the most probable class is
+# selected. For binary classification, it means that the probability is thresholded with
+# a decision cut-off value set at 0.5. In scikit-learn, it corresponds to the
+# `predict` method. Let's check the link between the `predict_proba` and `predict`
+# methods.
+
+# %%
+y_pred = model.predict(X)
+y_proba = model.predict_proba(X)
+
+if np.allclose(y_pred, y_proba[:, 1] > 0.5):
+    print("Equivalence TRUE")
+else:
+    print("Equivalence FALSE")
 
 # %% [markdown]
-# TODO: introduce decision making
+#
+# Predicted outcomes come with a set of metrics. Those metrics are derived from the
+# confusion matrix indicating the number of true positives, true negatives, false
+# positives and false negatives.
+
+# %%
+from sklearn.metrics import ConfusionMatrixDisplay
+
+ConfusionMatrixDisplay.from_predictions(y, y_pred)
+
+# %% [markdown]
+#
+# From the confusion matrix above, we can already think of what bother practitioners
+# in practice: the number of true positives and thus the number of rare events detected
+# is zero.
+#
+# One could interpret that our model is therefore not able to detect rare events and
+# thus useless. In general, instead of using the confusion matrix, practitioners
+# used different metrics such as the precision, recall, etc. Let's check the
+# classification report available in scikit-learn that provides a summary of the
+# metrics.
 
 # %%
 from sklearn.metrics import classification_report
 
 print(classification_report(y, model.predict(X)))
 
-# %%
-from sklearn.metrics import ConfusionMatrixDisplay
-
-ConfusionMatrixDisplay.from_estimator(model, X, y)
-
-# %%
-(y_proba.iloc[:, 1] > 0.5).value_counts()
-
 # %% [markdown]
 #
-# # What people naively do and why you should not do it
+# As expected, the precision and recall for the class of interest is null.
+#
+# In the next section, we present the usual solutions used by practitioners to deal with
+# this problem.
+#
+# ## What people naively do and why you should not do it
+#
+# The reason for not having any true positives in the confusion matrix boils down that
+# the estimated probabilities by the model for rare events are low because as previously
+# shown, those events are rare!
+#
+# One way to counter this issue is to resample the dataset and balance the class
+# frequencies. It means that we artificially increase the number of samples of the
+# rare event and thus the likelihood of the rare event to be detected is higher. We
+# therefore boost the estimated probabilities related to those rare events.
+#
+# Let's use `imbalanced-learn` to resample the dataset before to train a logistic
+# regression model.
 
 # %%
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import make_pipeline
 
+# keep a 0.7 ratio between the number of samples of the rare event and the number of
+# samples of the majority event.
 model = make_pipeline(
     RandomUnderSampler(sampling_strategy=0.7, random_state=0), LogisticRegression()
-)
-model.fit(X, y)
+).fit(X, y)
 
-# %%
-print(classification_report(y, model.predict(X)))
+# %% [markdown]
+#
+# Now, let's repeat the previous experiment and check the confusion matrix and the
+# classification report.
 
 # %%
 ConfusionMatrixDisplay.from_estimator(model, X, y)
 
 # %%
-CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
+print(classification_report(y, model.predict(X)))
+
+# %% [markdown]
+#
+# We observe that the number of true positives is now non-zero as well as the precision
+# and recall for the class of interest.
+#
+# So we might be tempted to conclude that we did the right thing by resampling the
+# dataset. However, here we only looked at the "thresholded" metrics. We should study
+# the calibration of the model and we can have a look at the coefficients also.
+#
+# ### Exercise
+#
+# Plot the coefficients of the model and check whether or not the coefficients are
+# close to the true coefficients. Then, plot the calibration curve and check whether or
+# not the model is well calibrated. What do you observe?
+
+# %%
+
+
+# %% [markdown]
+#
+# ### Solution
+
+# %%
+comparison_coef = pd.DataFrame(
+    {
+        "Generative model": np.hstack((intercept, true_coef)),
+        "Learned model": np.hstack((model[-1].intercept_, model[-1].coef_.flatten())),
+    },
+    index=np.hstack(["intercept", model.feature_names_in_]),
+)
+ax = comparison_coef.plot.barh()
+_ = ax.set(
+    title="Comparison of the true and learned model coefficients",
+    xlabel="Coefficient value",
+    ylabel="Feature",
+)
+
+# %%
+display = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
+_ = display.ax_.legend(loc="upper right")
+
+# %% [markdown]
+#
+# We observe that the coefficients related to the features are close to the true
+# coefficients of the generative model. However, the intercept is completely off. It
+# translates into an uncalibrated model as seen in the calibration curve: our model
+# becomes too confident at predicting the rare event which is not surprising because it
+# is exactly what we were seeking for.
 
 # %%
 from sklearn.calibration import CalibratedClassifierCV
