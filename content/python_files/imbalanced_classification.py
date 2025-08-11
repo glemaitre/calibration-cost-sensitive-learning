@@ -1,38 +1,27 @@
 # %% [markdown]
 #
-# # Classification with imbalanced datasets: effects and solutions
+# # Imbalanced classification: pitfalls and solutions
 #
-# Classification with imbalanced datasets refers to the problem of training and
-# predicting on a dataset where the classes frequencies in the target variable are
-# not balanced. Such datasets are common in practice, for example in fraud detections or
-# medical diagnosis since the event of interest is rare. It should also be noted that
-# the difference in class frequencies can vary from being mild (1 event of interest per
-# 10 samples) to extreme (1 event of interest per 1,000 samples).
+# Imbalanced classification refers to issues where the balance of the class frequencies
+# in the target variable add extra challenges to the classification problem. We focus
+# on two particular issues related to imbalanced classification.
 #
-# Recommendations in the scientific literature boiled down to resampling the training
-# dataset in order to optimize a thresholded classification metric. However, it is only
-# recently that the problem has been looked at from a different perspective. Indeed,
-# resampling has been shown to have a detrimental effect on the calibration of the
-# probabilities of classifiers.
+# The first issue is related to a large difference between the class frequencies in
+# the target variable. It means that the event of interest to predict is rare. As an
+# example, in fraud detection, the event of interest is a fraud and is by far less
+# common than legitimate transactions. In this notebook, we first focus on studying
+# this use case that has not been addressed properly in the scientific literature
+# apart from some recent works.
 #
-# This notebook explores the problem of imbalanced datasets and in particular aspects
-# related to the calibration of the classifier probabilities, the tuning of decision
-# thresholds and its impact on the classification metrics.
-
-# %% [markdown]
-# - Discuss the problem of imbalanced datasets in classification settings
-# - Relate to the meaning of rare events and thus low probability of occurrence
-# - Make the distinction between probability, well-calibrated probability, and
-#   low statistical decision metric by default
-# - Show the issue with resampling on the calibration of the model
-# - Show the effect of changing cut-off values on the decision metric
-# - Finally, show the how to tune the cut-off value to maximize a metric or a
-#   metric under constraints
-
-
-# %% [markdown]
+# The second issue is related to the fact that the data acquisition process does not
+# reflect the true class balance. It means that the class frequencies in the target
+# variable are not representative of the true class balance. As an example, for medical
+# diagnosis, the data acquisition process may be biased towards patients with a rare
+# disease by collecting the same amount of patients with the disease and the same amount
+# of patients without the disease. Therefore, there is a need to correct this bias.
+# In the next notebook, we will focus on this issue.
 #
-# ## What do we call imbalanced datasets in classification settings?
+# ## Class imbalance: representative data acquisition with rare events of interest
 #
 # In real-world applications, it commonly happens that we are interested in predicting
 # rare events, e.g. frauds, rare diseases, rare climatic events, etc. Simplifying this
@@ -91,7 +80,7 @@ print(f"Class counts:\n {y.value_counts()}\n")
 # absolute counts, because we generated a 1,000,000 samples, the number of events of
 # interest is rather high (25,000).
 #
-# A particular challenge when dealing real-world imbalanced datasets is that the number
+# A particular challenge when dealing real-world class imbalance is that the number
 # of available samples of the rare event can be usually low even with a large number
 # of samples. Therefore, it is always important to check the absolute counts of the
 # rare event and if the dataset contains less than 1,000 samples of the rare event,
@@ -117,7 +106,7 @@ model = LogisticRegression().fit(X, y)
 # %%
 comparison_coef = pd.DataFrame(
     {
-        "Generative model": np.hstack((intercept, true_coef)),
+        "Data generating model": np.hstack((intercept, true_coef)),
         "Learned model": np.hstack((model.intercept_, model.coef_.flatten())),
     },
     index=np.hstack(["intercept", model.feature_names_in_]),
@@ -288,10 +277,7 @@ _ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
 y_pred = model.predict(X)
 y_proba = model.predict_proba(X)
 
-if np.allclose(y_pred, y_proba[:, 1] > 0.5):
-    print("Equivalence TRUE")
-else:
-    print("Equivalence FALSE")
+np.allclose(y_pred, y_proba[:, 1] > 0.5)
 
 # %% [markdown]
 #
@@ -302,7 +288,7 @@ else:
 # %%
 from sklearn.metrics import ConfusionMatrixDisplay
 
-ConfusionMatrixDisplay.from_predictions(y, y_pred)
+_ = ConfusionMatrixDisplay.from_predictions(y, y_pred)
 
 # %% [markdown]
 #
@@ -358,7 +344,7 @@ model = make_pipeline(
 # classification report.
 
 # %%
-ConfusionMatrixDisplay.from_estimator(model, X, y)
+_ = ConfusionMatrixDisplay.from_estimator(model, X, y)
 
 # %%
 print(classification_report(y, model.predict(X)))
@@ -441,7 +427,7 @@ ConfusionMatrixDisplay.from_estimator(model, X, y)
 
 # %% [markdown]
 #
-# # What you should do instead
+# ## What you should do instead
 
 # %%
 from sklearn.model_selection import FixedThresholdClassifier
