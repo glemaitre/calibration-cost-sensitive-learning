@@ -566,3 +566,13 @@ roc_auc_score(y_future, gbdt_post_hoc.predict_proba(X_future)[:, 1])
 # %%
 log_loss(y_future, gbdt_post_hoc.predict_proba(X_future))
 # %%
+gbdt_post_hoc_elkan = ElkanPrevalenceCorrection(
+    estimator=HistGradientBoostingClassifier(random_state=0),
+    target_positive_rate=true_positive_rate_past,
+).fit(X_train, y_train)
+
+# %%
+np.testing.assert_allclose(
+    gbdt_post_hoc.predict_proba(X_future)[:, 1],
+    gbdt_post_hoc_elkan.predict_proba(X_future)[:, 1],
+)
