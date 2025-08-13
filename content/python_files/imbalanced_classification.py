@@ -535,10 +535,16 @@ precision_scores, precision_thresholds = precision_curve_scorer(model, X, y)
 recall_scores, recall_thresholds = recall_curve_scorer(model, X, y)
 
 # %%
-# TODO: add PR curve as well + threshold with tooltip
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-fig_plotly = go.Figure()
+fig_plotly = make_subplots(
+    rows=1,
+    cols=2,
+    subplot_titles=("Precision and Recall vs Threshold", "Precision-Recall Curve"),
+    horizontal_spacing=0.1,
+)
+
 fig_plotly.add_trace(
     go.Scatter(
         x=precision_thresholds,
@@ -547,7 +553,9 @@ fig_plotly.add_trace(
         name="Precision",
         marker=dict(symbol="cross"),
         hovertemplate="Threshold: %{x:.2f}<br>Precision: %{y:.3f}",
-    )
+    ),
+    row=1,
+    col=1,
 )
 fig_plotly.add_trace(
     go.Scatter(
@@ -557,16 +565,45 @@ fig_plotly.add_trace(
         name="Recall",
         marker=dict(symbol="cross"),
         hovertemplate="Threshold: %{x:.2f}<br>Recall: %{y:.3f}",
-    )
+    ),
+    row=1,
+    col=1,
 )
+
+fig_plotly.add_trace(
+    go.Scatter(
+        x=recall_scores,
+        y=precision_scores,
+        mode="lines+markers",
+        name="PR Curve",
+        marker=dict(symbol="circle"),
+        hovertemplate="Recall: %{x:.3f}<br>Precision: %{y:.3f}<br>Threshold: %{text}",
+        text=[f"{t:.2f}" for t in precision_thresholds],
+        showlegend=False,
+    ),
+    row=1,
+    col=2,
+)
+
 fig_plotly.update_layout(
-    xaxis_title="Threshold",
-    yaxis_title="Score",
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    legend=dict(
+        x=0.35,
+        y=0.85,
+        xanchor="left",
+        yanchor="top",
+        bgcolor="rgba(255,255,255,0.8)",
+        bordercolor="rgba(0,0,0,0.2)",
+        borderwidth=1,
+    ),
     hovermode="closest",
-    width=600,
+    width=1200,
     height=500,
 )
+
+fig_plotly.update_xaxes(title_text="Threshold", row=1, col=1)
+fig_plotly.update_yaxes(title_text="Score", row=1, col=1)
+fig_plotly.update_xaxes(title_text="Recall", row=1, col=2)
+fig_plotly.update_yaxes(title_text="Precision", row=1, col=2)
 fig_plotly.show()
 
 # TODO: mention that we want a minimum level of precision (5%) such that our human does
@@ -634,6 +671,7 @@ print(classification_report(y, model.predict(X)))
 # Below, we show a case where we want to maximize the precision score but such that the
 # model reach a minimum recall score. We therefore need to create a custom function that
 # can be used by the `TunedThresholdClassifierCV` meta-estimator.
+
 
 # TODO: switch precision and recall.
 # %%
