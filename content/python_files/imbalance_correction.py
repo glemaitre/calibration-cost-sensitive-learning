@@ -284,7 +284,9 @@ log_loss(y_future, logreg_weighted.predict_proba(X_future))
 
 # %%
 sample_weight_for_prevalence_correction = np.where(
-    y_train == 0, class_weight_for_prevalence_correction[0], class_weight_for_prevalence_correction[1]
+    y_train == 0,
+    class_weight_for_prevalence_correction[0],
+    class_weight_for_prevalence_correction[1],
 )
 logreg_weighted2 = LogisticRegression(penalty=None).fit(
     X_train, y_train, sample_weight=sample_weight_for_prevalence_correction
@@ -297,9 +299,7 @@ np.testing.assert_allclose(logreg_weighted.intercept_, logreg_weighted2.intercep
 # TODO: link to https://stats.stackexchange.com/a/68726/2150
 from scipy.special import logit
 
-logreg_intercept_corrected = LogisticRegression(penalty=None).fit(
-    X_train, y_train
-)
+logreg_intercept_corrected = LogisticRegression(penalty=None).fit(X_train, y_train)
 logreg_intercept_corrected.intercept_ += logit(true_positive_rate_past) - logit(
     y_train.mean()
 )
@@ -387,6 +387,76 @@ roc_auc_score(y_future, logreg_post_hoc.predict_proba(X_future)[:, 1])
 # %%
 log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 
+
+# %%
+class ElkanPrevalenceCorrection(ClassifierMixin, BaseEstimator):
+    def __init__(self, estimator=None, target_positive_rate=0.5):
+        self.estimator = estimator
+        self.target_positive_rate = target_positive_rate
+
+    def fit(self, X, y, **fit_params):
+        if self.estimator is None:
+            estimator = LogisticRegression()
+        else:
+            estimator = clone(self.estimator)
+
+        self.estimator_ = estimator.fit(X, y, **fit_params)
+        self.observed_positive_rate_ = y.mean()
+        return self
+
+    def predict_proba(self, X):
+        uncorrected_proba = self.estimator_.predict_proba(X)
+
+        corrected_proba = np.zeros_like(uncorrected_proba)
+        # p - pb
+        numerator = uncorrected_proba[:, 1] - (
+            uncorrected_proba[:, 1] * self.observed_positive_rate_
+        )
+        # b - pb + b'p - b'b
+        denominator = (
+            self.observed_positive_rate_
+            - (uncorrected_proba[:, 1] * self.observed_positive_rate_)
+            + (self.target_positive_rate * uncorrected_proba[:, 1])
+            - (self.target_positive_rate * self.observed_positive_rate_)
+        )
+        # b' * numerator / denominator
+        corrected_proba[:, 1] = self.target_positive_rate * numerator / denominator
+        corrected_proba[:, 0] = 1 - corrected_proba[:, 1]
+        return corrected_proba
+
+    def predict(self, X):
+        proba = self.predict_proba(X)
+        return (proba[:, 1] >= 0.5).astype(np.int32)
+
+
+logreg_elkan = ElkanPrevalenceCorrection(
+    estimator=LogisticRegression(penalty=None),
+    target_positive_rate=true_positive_rate_past,
+).fit(X_train, y_train)
+logreg_elkan.estimator_.coef_, logreg_elkan.estimator_.intercept_
+
+# %% [markdown]
+#
+# For a Logistic Regression model, this generic post-hoc imbalance correction
+# should be strictly equivalent to our previously introduced post-hoc
+# correction of the intercept parameter:
+
+# %%
+np.testing.assert_allclose(
+    logreg_elkan.predict_proba(X_future),
+    logreg_intercept_corrected.predict_proba(X_future),
+)
+
+# %% [markdown]
+#
+# Therefore we should get the same metrics as before:
+
+# %%
+roc_auc_score(y_future, logreg_elkan.predict_proba(X_future)[:, 1])
+
+# %%
+log_loss(y_future, logreg_elkan.predict_proba(X_future))
+
 # %% [markdown]
 #
 # ### Questions:
@@ -452,19 +522,17 @@ log_loss(
 )
 
 # %%
-log_loss(
-    y_future, logreg_uncorrected.predict_proba(X_future)
-)
+log_loss(y_future, logreg_uncorrected.predict_proba(X_future))
 
 # %%
 log_loss(
-    y_test, logreg_intercept_corrected.predict_proba(X_test), sample_weight=sample_weight_test
+    y_test,
+    logreg_intercept_corrected.predict_proba(X_test),
+    sample_weight=sample_weight_test,
 )
 
 # %%
-log_loss(
-    y_future, logreg_intercept_corrected.predict_proba(X_future)
-)
+log_loss(y_future, logreg_intercept_corrected.predict_proba(X_future))
 
 # %% [markdown]
 #
