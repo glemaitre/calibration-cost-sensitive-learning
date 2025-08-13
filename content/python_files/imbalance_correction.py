@@ -388,6 +388,13 @@ roc_auc_score(y_future, logreg_post_hoc.predict_proba(X_future)[:, 1])
 log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 
 
+# %% [markdown]
+#
+# Correction based on Elkan's paper:
+# The foundations of cost-sensitive learning
+# https://cseweb.ucsd.edu/~elkan/rescale.pdf
+
+
 # %%
 class ElkanPrevalenceCorrection(ClassifierMixin, BaseEstimator):
     def __init__(self, estimator=None, target_positive_rate=0.5):
@@ -435,22 +442,11 @@ logreg_elkan = ElkanPrevalenceCorrection(
 ).fit(X_train, y_train)
 logreg_elkan.estimator_.coef_, logreg_elkan.estimator_.intercept_
 
-# %% [markdown]
-#
-# For a Logistic Regression model, this generic post-hoc imbalance correction
-# should be strictly equivalent to our previously introduced post-hoc
-# correction of the intercept parameter:
-
 # %%
 np.testing.assert_allclose(
     logreg_elkan.predict_proba(X_future),
     logreg_intercept_corrected.predict_proba(X_future),
 )
-
-# %% [markdown]
-#
-# Therefore we should get the same metrics as before:
-
 # %%
 roc_auc_score(y_future, logreg_elkan.predict_proba(X_future)[:, 1])
 
