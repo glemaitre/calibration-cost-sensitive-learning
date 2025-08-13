@@ -18,25 +18,25 @@
 # As a result, the prevalence of the positive class in the observed data does
 # not reflect the true prevalence of the positive class in the target
 # population. Still, we want to be able to precisely estimate the performance
-# of our model when deployed in the target population from the data we have at
-# hand and ensure that its probabilistic predictions are as accurate as
-# possible in the deployed setting.
+# of our computer-aided diagnosis system when deployed in the target
+# population, only from the observed data at hand and ensure that its
+# probabilistic predictions are as accurate as possible in the deployed
+# setting.
 #
-# The lack of match of prevalence between the dataset and the deployment
-# setting is a result of cost or computational constraints that prevent us from
-# training and evaluating our model on the full target population. It is not
-# the result of a modeling choice of the data-scientist.
+# The lack of match of prevalence between the collected dataset and the
+# deployment setting is a result of cost or computational constraints that
+# prevent us from training and evaluating our predictive model on the full
+# target population. It is not the result of a modeling choice of the
+# data-scientist.
 #
-# Note that the classes are both imbalanced in the target population (often
-# extremely so) and can also be imbalanced in the collected dataset (however
-# likely less so).
+# Note that the classes are extremely imbalanced in the target population but
+# can also be imbalanced in the collected dataset, although likely less so.
 #
 # In this study, we will illustrate how to handle such a setting by correcting
 # the observed data to better match the target population. We will use
 # synthetic data generated from a known data generating process so as to make
 # it possible to check that our evaluation results on the observed data can be
-# correctly interpreted in the context of the target population (which would be
-# otherwise not observed).
+# correctly interpreted in the context of the target population.
 #
 # ## Data generating process
 #
@@ -44,7 +44,7 @@
 # mechanism about the world. The true data generating process is generally
 # unknown, and the goal of machine learning is to approximate it as closely as
 # possible from a finite sample of data points.
-# 
+#
 # Here, we want to simulate a binary classification problem where the target
 # variable is a binary variable with a positive class that is very rare.
 #
@@ -54,13 +54,16 @@
 # domains with extreme imbalance are fraud detection, credit scoring,
 # predictive maintenance, etc.
 #
-# We start this study by assuming that the data generating process is a linear
-# model with a logistic link function: the features influence the probability
-# of developing the disease but we expect them to provide only a partial
-# information about the true risk as other unobserved factors may also
-# influence disease development. We assume the unobserved factors to be
-# independent of the observed features and all distribution to be stationary
-# over time.
+# For the sake of simplicity, we start this study by assuming that the data
+# generating process is a linear model with a logistic link function: the
+# features influence the probability of developing the disease but we expect
+# them to provide only a partial information about the true risk as other
+# unobserved factors may also influence disease development. We assume the
+# unobserved factors to be independent of the observed features and all
+# distribution to be stationary over time.
+#
+# We will later relax the linearity assumption but other assumptions will still
+# apply.
 
 # %%
 import numpy as np
@@ -68,28 +71,26 @@ import pandas as pd
 from scipy.special import expit, logit
 
 rng = np.random.default_rng(0)
-
-dtype = np.float64  # use float32 to save memory
+dtype = np.float32  # use float32 to save memory
 n_features = 5
 true_coef = rng.normal(size=n_features).astype(dtype)
-true_intercept = -5
+true_intercept = -6
 
 
-def sample_from_linear_model(true_coef, true_intercept, n_samples, rng):
-    X_future = rng.normal(size=(n_samples, n_features)).astype(dtype)
-    Z = X_future @ true_coef
+def sample_from_linear_model(true_coef, true_intercept, n_samples, seed):
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(n_samples, n_features)).astype(dtype)
+    Z = X @ true_coef
     true_positive_proba = expit(Z + true_intercept)
-    y_future = rng.binomial(n=1, p=true_positive_proba)
+    y = rng.binomial(n=1, p=true_positive_proba)
     true_proba = np.hstack(
         [1 - true_positive_proba[:, np.newaxis], true_positive_proba[:, np.newaxis]]
     )
 
     # create pandas data structures for convenience
-    X_future = pd.DataFrame(
-        X_future, columns=[f"feature_{i}" for i in range(n_features)]
-    )
-    y_future = pd.Series(y_future, name="target")
-    return X_future, y_future, true_proba
+    X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(n_features)])
+    y = pd.Series(y, name="target")
+    return X, y, true_proba
 
 
 # %% [markdown]
@@ -101,10 +102,10 @@ def sample_from_linear_model(true_coef, true_intercept, n_samples, rng):
 # %%
 n_samples = 30_000_000
 X_past, y_past, true_proba_past = sample_from_linear_model(
-    true_coef, true_intercept, n_samples, rng
+    true_coef, true_intercept, n_samples, seed=0
 )
 X_future, y_future, true_proba_future = sample_from_linear_model(
-    true_coef, true_intercept, n_samples, rng
+    true_coef, true_intercept, n_samples, seed=1
 )
 
 # %%
@@ -148,7 +149,8 @@ log_loss(y_past, true_proba_past)
 # - What is the best possible value for the ROC AUC score (in general)?
 # - What is the best possible value for the log-loss (in general)?
 # - Why cannot we reach these values even when using the true probabilities?
-# - What is the name name of the error rate obtained from the true probabilities?
+# - What is the name name of the error rate obtained when computed from the
+#   true probabilities?
 
 # %%
 # # TODO: write your answers here before scrolling down.
@@ -180,24 +182,30 @@ log_loss(y_past, true_proba_past)
 
 # %% [markdown]
 #
-# Because we are curious, let's check that the use of Logistic Regression on such a large number of data points
-# would be able to approximately recover the true coefficients and intercept.
+# Because we are curious, let's check that the use of Logistic Regression on
+# such a large number of data points would be able to approximately recover the
+# true coefficients and intercept.
 
 # %%
 from sklearn.linear_model import LogisticRegression
 
-clf = LogisticRegression(penalty=None).fit(X_future, y_future)
-clf.coef_, clf.intercept_
+cheating_model = LogisticRegression(penalty=None).fit(X_future, y_future)
+cheating_model.coef_, cheating_model.intercept_
 # %%
 true_coef, true_intercept
 
 # %%
-roc_auc_score(y_future, clf.predict_proba(X_future)[:, 1])
+# TODO: redo the bar plot of the previous notebook to compare the coefficients.
 
 # %%
-log_loss(y_future, clf.predict_proba(X_future))
+roc_auc_score(y_future, cheating_model.predict_proba(X_future)[:, 1])
+
+# %%
+log_loss(y_future, cheating_model.predict_proba(X_future))
 
 # %% [markdown]
+#
+# ## Prevalence shift induced by the data acquisition process
 #
 # Subsample the dataset based to collect all the positives and a random sample
 # of negatives from the past data. Mere mortal data scientists cannot
@@ -254,13 +262,13 @@ roc_auc_score(y_future, logreg_uncorrected.predict_proba(X_future)[:, 1])
 log_loss(y_future, logreg_uncorrected.predict_proba(X_future))
 
 # %%
+class_weight_for_prevalence_correction = {
+    0: (1 - true_positive_rate_past) / (1 - y_train.mean()),
+    1: true_positive_rate_past / y_train.mean(),
+}
 logreg_weighted = LogisticRegression(
-    penalty=None,
-    class_weight={
-        0: (1 - true_positive_rate_past) / (1 - y_observed.mean()),
-        1: true_positive_rate_past / y_observed.mean(),
-    },
-).fit(X_observed, y_observed)
+    penalty=None, class_weight=class_weight_for_prevalence_correction
+).fit(X_train, y_train)
 logreg_weighted.coef_, logreg_weighted.intercept_
 
 # %%
@@ -275,26 +283,25 @@ log_loss(y_future, logreg_weighted.predict_proba(X_future))
 # class_weight.
 
 # %%
-sample_weight_observed = np.empty(len(y_observed), dtype=dtype)
-sample_weight_observed[y_observed == 0] = (1 - true_positive_rate_past) / (
-    1 - y_observed.mean()
+sample_weight_for_prevalence_correction = np.where(
+    y_train == 0, class_weight_for_prevalence_correction[0], class_weight_for_prevalence_correction[1]
 )
-sample_weight_observed[y_observed == 1] = true_positive_rate_past / y_observed.mean()
 logreg_weighted2 = LogisticRegression(penalty=None).fit(
-    X_observed, y_observed, sample_weight=sample_weight_observed
+    X_train, y_train, sample_weight=sample_weight_for_prevalence_correction
 )
 logreg_weighted2.coef_, logreg_weighted2.intercept_
 np.testing.assert_allclose(logreg_weighted.coef_, logreg_weighted2.coef_)
 np.testing.assert_allclose(logreg_weighted.intercept_, logreg_weighted2.intercept_)
 
 # %%
+# TODO: link to https://stats.stackexchange.com/a/68726/2150
 from scipy.special import logit
 
 logreg_intercept_corrected = LogisticRegression(penalty=None).fit(
-    X_observed, y_observed
+    X_train, y_train
 )
 logreg_intercept_corrected.intercept_ += logit(true_positive_rate_past) - logit(
-    y_observed.mean()
+    y_train.mean()
 )
 logreg_intercept_corrected.coef_, logreg_intercept_corrected.intercept_
 
@@ -318,7 +325,7 @@ log_loss(y_future, logreg_intercept_corrected.predict_proba(X_future))
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 
 
-class PostHocImbalanceCorrection(BaseEstimator, ClassifierMixin):
+class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
     def __init__(self, estimator=None, target_positive_rate=0.5):
         self.estimator = estimator
         self.target_positive_rate = target_positive_rate
@@ -353,10 +360,10 @@ class PostHocImbalanceCorrection(BaseEstimator, ClassifierMixin):
         return (proba[:, 1] >= 0.5).astype(np.int32)
 
 
-logreg_post_hoc = PostHocImbalanceCorrection(
+logreg_post_hoc = PostHocPrevalenceCorrection(
     estimator=LogisticRegression(penalty=None),
     target_positive_rate=true_positive_rate_past,
-).fit(X_observed, y_observed)
+).fit(X_train, y_train)
 logreg_post_hoc.estimator_.coef_, logreg_post_hoc.estimator_.intercept_
 
 # %% [markdown]
@@ -382,9 +389,11 @@ log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 
 # %% [markdown]
 #
-# Consider the two kinds of post-hoc imbalance correction:
-# - what happens when we pass `target_positive_rate=y_observed.mean()`?
-# - is it possible to get predict_proba values that are not in [0, 1] by
+# ### Questions:
+#
+# Consider the two kinds of post-hoc imbalance correction presented above:
+# - what happens when we pass `target_positive_rate=y_train.mean()`?
+# - is it possible to get `predict_proba` values that are not in `[0, 1]` by
 #   setting extreme values for `target_positive_rate`?
 #
 # Hint: the `expit` function is takes any real number as input and returns a
@@ -400,7 +409,7 @@ log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 # \text{logit}(p) = \log\left(\frac{p}{1 - p}\right) \in \mathbb{R} \text{ for any } p \in [0, 1]
 # $$
 
-# %%
+# %% [markdown]
 #
 # ## Evaluating models on observed test data
 #
@@ -415,15 +424,27 @@ log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 # the observed test data: in our case, the number of negatives cases is much lower
 # in the observed data (train or test) than in the target population.
 #
+# If we naively evaluate the model on the observed test data, we will get
+# misleading results: the model will be evaluated on a test set that does not
+# %%
+log_loss(y_test, logreg_uncorrected.predict_proba(X_test))
+
+# %%
+log_loss(y_test, logreg_intercept_corrected.predict_proba(X_test))
+
+# %% [markdown]
+#
 # Therefore, we need to apply the same class ratio correction to the evaluation set.
 # Scikit-learn metric function usually do not provide a `class_weight` parameter but they
 # often provide a `sample_weight` parameter.
 
 
 # %%
-sample_weight_test = np.ones(len(y_test))
-sample_weight_test[y_test == 0] = (1 - true_positive_rate_past) / (1 - y_test.mean())
-sample_weight_test[y_test == 1] = true_positive_rate_past / y_test.mean()
+sample_weight_test = np.where(
+    y_test == 0,
+    (1 - true_positive_rate_past) / (1 - y_test.mean()),
+    true_positive_rate_past / y_test.mean(),
+)
 
 # %%
 log_loss(
@@ -432,9 +453,8 @@ log_loss(
 
 # %%
 log_loss(
-    y_test, logreg_weighted.predict_proba(X_test), sample_weight=sample_weight_test
+    y_future, logreg_uncorrected.predict_proba(X_future)
 )
-
 
 # %%
 log_loss(
@@ -443,9 +463,8 @@ log_loss(
 
 # %%
 log_loss(
-    y_test, logreg_post_hoc.predict_proba(X_test), sample_weight=sample_weight_test
+    y_future, logreg_intercept_corrected.predict_proba(X_future)
 )
-
 
 # %% [markdown]
 #
@@ -463,11 +482,9 @@ log_loss(y_future, gbdt_uncorrected.predict_proba(X_future))
 
 # %%
 gbdt_weighted = HistGradientBoostingClassifier(
-    random_state=0, class_weight={
-        0: (1 - true_positive_rate_past) / (1 - y_observed.mean()),
-        1: true_positive_rate_past / y_observed.mean(),
-    }
-).fit(X_observed, y_observed)
+    random_state=0,
+    class_weight=class_weight_for_prevalence_correction,
+).fit(X_train, y_train)
 # %%
 roc_auc_score(y_future, gbdt_weighted.predict_proba(X_future)[:, 1])
 
@@ -475,10 +492,10 @@ roc_auc_score(y_future, gbdt_weighted.predict_proba(X_future)[:, 1])
 log_loss(y_future, gbdt_weighted.predict_proba(X_future))
 
 # %%
-gbdt_post_hoc = PostHocImbalanceCorrection(
+gbdt_post_hoc = PostHocPrevalenceCorrection(
     estimator=HistGradientBoostingClassifier(random_state=0),
     target_positive_rate=true_positive_rate_past,
-).fit(X_observed, y_observed)
+).fit(X_train, y_train)
 
 # %%
 roc_auc_score(y_future, gbdt_post_hoc.predict_proba(X_future)[:, 1])
