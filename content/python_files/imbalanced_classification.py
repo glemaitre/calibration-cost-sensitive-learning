@@ -96,7 +96,7 @@ print(f"Class counts:\n {y.value_counts()}\n")
 # %%
 from sklearn.linear_model import LogisticRegression
 
-model = LogisticRegression().fit(X, y)
+model = LogisticRegression(penalty=None).fit(X, y)
 
 # %% [markdown]
 #
@@ -156,7 +156,7 @@ def generate_imbalanced_dataset(n_samples=10_000, n_features=5, seed=0):
 
 
 X_exercise, y_exercise = generate_imbalanced_dataset(n_samples=10_000)
-model_exercise = LogisticRegression().fit(X_exercise, y_exercise)
+model_exercise = LogisticRegression(penalty=None).fit(X_exercise, y_exercise)
 
 comparison_coef_exercise = pd.DataFrame(
     {
@@ -208,6 +208,14 @@ y_proba.mean() * 100
 # %%
 _ = y_proba.plot.hist(
     bins=100, figsize=(10, 5), subplots=True, layout=(1, 2), sharey=True
+)
+
+# %%
+bins = np.linspace(0, 1, 300)
+_ = (
+    pd.concat([y_proba, y.to_frame()], axis=1)
+    .groupby("target")["p_hat(y=1)"]
+    .plot.hist(bins=bins, alpha=0.5, legend=True, density=True)
 )
 
 # %% [markdown]
@@ -330,7 +338,8 @@ from imblearn.pipeline import make_pipeline
 # keep a 0.7 ratio between the number of samples of the rare event and the number of
 # samples of the majority event.
 model = make_pipeline(
-    RandomUnderSampler(sampling_strategy=0.7, random_state=0), LogisticRegression()
+    RandomUnderSampler(sampling_strategy=0.7, random_state=0),
+    LogisticRegression(penalty=None),
 ).fit(X, y)
 
 # %% [markdown]
@@ -370,7 +379,9 @@ print(classification_report(y, model.predict(X)))
 comparison_coef = pd.DataFrame(
     {
         "Data generating model": np.hstack((intercept, true_coef)),
-        "Learned model": np.hstack((model[-1].intercept_, model[-1].coef_.flatten())),
+        "Model trained on under-sampled data": np.hstack(
+            (model[-1].intercept_, model[-1].coef_.flatten())
+        ),
     },
     index=np.hstack(["intercept", model.feature_names_in_]),
 )
@@ -382,7 +393,14 @@ _ = ax.set(
 )
 
 # %%
-display = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
+display = CalibrationDisplay.from_estimator(
+    model,
+    X,
+    y,
+    n_bins=20,
+    strategy="quantile",
+    name="Model trained on under-sampled data",
+)
 _ = display.ax_.legend(loc="upper right")
 
 # %% [markdown]
@@ -445,10 +463,18 @@ print(classification_report(y, calibrated_model.predict(X)))
 # shifting the intercept. However, the estimated probabilities are completely off the
 # original true probabilities.
 #
-# Therefore, it tells us that in terms of evaluation metrics, one should either use a
-# ranking metric (e.g. ROC AUC), a calibration metric (e.g. Brier score) such that the
-# influence of the decision cut-off threshold does not impact the evaluation metrics or
-# a curve representing a "thresholded" metric for all possible decision cut-off
+# Therefore, it tells us that we should be careful with the choice of evaluation metrics
+# and how it interacts with the choice of the decision cut-off threshold.
+#
+# TODO rephrase the below paragraph
+# - proba should be good and ignore the threshold
+# - if we have metrics impacted by the threshold, consider the metrics for different
+#   thresholds to see the impact of the threshold on the metrics
+#
+# use a ranking metric (e.g. ROC AUC), a probabilistic metric that assess both ranking
+# and calibration of the predictive model at the same time (e.g. log loss).
+# The decision cut-off threshold does not impact those type of metrics.
+# An alternative is to represent "thresholded" metrics for all possible decision cut-off
 # thresholds. If we have a specific "thresholded" metric, then we need to tune the
 # decision cut-off threshold and not let it to be set at 0.5.
 #
@@ -473,7 +499,7 @@ print(classification_report(y, calibrated_model.predict(X)))
 # the resulting model is well calibrated when fitted on the original dataset.
 
 # %%
-model = LogisticRegression().fit(X, y)
+model = LogisticRegression(penalty=None).fit(X, y)
 
 # %% [markdown]
 #
@@ -509,6 +535,7 @@ precision_scores, precision_thresholds = precision_curve_scorer(model, X, y)
 recall_scores, recall_thresholds = recall_curve_scorer(model, X, y)
 
 # %%
+# TODO: add PR curve as well + threshold with tooltip
 import plotly.graph_objects as go
 
 fig_plotly = go.Figure()
@@ -542,6 +569,10 @@ fig_plotly.update_layout(
 )
 fig_plotly.show()
 
+# TODO: mention that we want a minimum level of precision (5%) such that our human does
+# not tired of reviewing false positive cases and to expensive. But we want to maximize
+# the recall for that level of precision. cf. predictive maintenance.
+
 # %% [markdown]
 #
 # Using these curves, we now can make a choice regarding a specific trade-off between
@@ -568,7 +599,9 @@ from sklearn.model_selection import FixedThresholdClassifier
 
 # %%
 threshold = 0.09
-model = FixedThresholdClassifier(LogisticRegression(), threshold=threshold).fit(X, y)
+model = FixedThresholdClassifier(
+    LogisticRegression(penalty=None), threshold=threshold
+).fit(X, y)
 
 # %%
 display = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
@@ -602,7 +635,7 @@ print(classification_report(y, model.predict(X)))
 # model reach a minimum recall score. We therefore need to create a custom function that
 # can be used by the `TunedThresholdClassifierCV` meta-estimator.
 
-
+# TODO: switch precision and recall.
 # %%
 def maximize_precision_under_constrained_recall(y_true, y_pred, recall_level):
     precision, recall = precision_score(y_true, y_pred), recall_score(y_true, y_pred)
@@ -620,7 +653,7 @@ from sklearn.model_selection import TunedThresholdClassifierCV
 # create a scorer that maximizes the precision but such that the recall is at least 0.3
 scoring = make_scorer(maximize_precision_under_constrained_recall, recall_level=0.3)
 model = TunedThresholdClassifierCV(
-    estimator=LogisticRegression(), scoring=scoring, n_jobs=-1
+    estimator=LogisticRegression(penalty=None), scoring=scoring, n_jobs=-1
 ).fit(X, y)
 
 # %%
