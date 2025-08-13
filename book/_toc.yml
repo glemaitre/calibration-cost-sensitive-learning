@@ -23,10 +23,6 @@ parts:
 - caption: The problem of imbalanced classification
   chapters:
   - file: content/notebooks/imbalanced_classification
-  # TODO: add a case when the (training and evaluation) data acquisition does not
-  #       reflect the true class balance
-  # TODO: show the correction for the intercept of the linear model
-  # TODO: show the correction for non-linear case (sample-weight correction or
-  #       correct `predict_proba`)
+  - file: content/notebooks/imbalanced_correction
   - file: content/notebooks/regularization_under_sampling
   - file: content/notebooks/computational_performance
