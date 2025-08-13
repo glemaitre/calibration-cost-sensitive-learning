@@ -390,7 +390,7 @@ log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 
 # %% [markdown]
 #
-# Correction based on Elkan's paper:
+# Correction based on Elkan's paper, Theorem 2:
 # The foundations of cost-sensitive learning
 # https://cseweb.ucsd.edu/~elkan/rescale.pdf
 
