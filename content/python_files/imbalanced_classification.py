@@ -600,10 +600,10 @@ fig_plotly.update_layout(
     height=500,
 )
 
-fig_plotly.update_xaxes(title_text="Threshold", row=1, col=1)
-fig_plotly.update_yaxes(title_text="Score", row=1, col=1)
-fig_plotly.update_xaxes(title_text="Recall", row=1, col=2)
-fig_plotly.update_yaxes(title_text="Precision", row=1, col=2)
+fig_plotly.update_xaxes(title_text="Threshold", range=[0, 1], row=1, col=1)
+fig_plotly.update_yaxes(title_text="Score", range=[0, 1], row=1, col=1)
+fig_plotly.update_xaxes(title_text="Recall", range=[0, 1], row=1, col=2)
+fig_plotly.update_yaxes(title_text="Precision", range=[0, 1], row=1, col=2)
 fig_plotly.show()
 
 # TODO: mention that we want a minimum level of precision (5%) such that our human does
