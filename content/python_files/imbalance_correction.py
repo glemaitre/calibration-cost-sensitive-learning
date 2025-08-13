@@ -1,6 +1,6 @@
 # %% [markdown]
 #
-# # Handling 
+# # Handling prevalence mismatch in imbalanced classification problems
 #
 # The purpose of this study is to illustrate how to handle extreme class
 # imbalance in the common setting where the data acquisition process does not
