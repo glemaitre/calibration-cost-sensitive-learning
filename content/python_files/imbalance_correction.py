@@ -1,15 +1,72 @@
+# %% [markdown]
+#
+# # Handling 
+#
+# The purpose of this study is to illustrate how to handle extreme class
+# imbalance in the common setting where the data acquisition process does not
+# reflect the true class imbalance of the target distribution.
+#
+# This setting is quite common in practice: for instance, in medical diagnosis,
+# the data acquisition process might collect data for all known cases of a rare
+# disease (positive class): since the cases are rare, we don't want to waste
+# any of them. However, it would be infeasible to collect data for all subjects
+# not known to have the disease (negative class) because it would be too costly
+# (and might also cause ethical and privacy issues). Instead, we might randomly
+# sample subjects from the population to collect data about them (and check
+# that they do not have the disease).
+#
+# As a result, the prevalence of the positive class in the observed data does
+# not reflect the true prevalence of the positive class in the target
+# population. Still, we want to be able to precisely estimate the performance
+# of our model when deployed in the target population from the data we have at
+# hand and ensure that its probabilistic predictions are as accurate as
+# possible in the deployed setting.
+#
+# The lack of match of prevalence between the dataset and the deployment
+# setting is a result of cost or computational constraints that prevent us from
+# training and evaluating our model on the full target population. It is not
+# the result of a modeling choice of the data-scientist.
+#
+# Note that the classes are both imbalanced in the target population (often
+# extremely so) and can also be imbalanced in the collected dataset (however
+# likely less so).
+#
+# In this study, we will illustrate how to handle such a setting by correcting
+# the observed data to better match the target population. We will use
+# synthetic data generated from a known data generating process so as to make
+# it possible to check that our evaluation results on the observed data can be
+# correctly interpreted in the context of the target population (which would be
+# otherwise not observed).
+#
+# ## Data generating process
+#
+# Let's define a "true" data generating process that represent some fundamental
+# mechanism about the world. The true data generating process is generally
+# unknown, and the goal of machine learning is to approximate it as closely as
+# possible from a finite sample of data points.
+# 
+# Here, we want to simulate a binary classification problem where the target
+# variable is a binary variable with a positive class that is very rare.
+#
+# The typical application domain could be medical diagnosis where the feature
+# values are physiological measurements and the target variable is a binary
+# indicator for the presence of a rare disease of interest. Other application
+# domains with extreme imbalance are fraud detection, credit scoring,
+# predictive maintenance, etc.
+#
+# We start this study by assuming that the data generating process is a linear
+# model with a logistic link function: the features influence the probability
+# of developing the disease but we expect them to provide only a partial
+# information about the true risk as other unobserved factors may also
+# influence disease development. We assume the unobserved factors to be
+# independent of the observed features and all distribution to be stationary
+# over time.
+
 # %%
 import numpy as np
 import pandas as pd
 from scipy.special import expit, logit
 
-
-# %% [markdown]
-#
-# Let's define a "true" data generating process that represent some fundamental mechanism
-# about the world.
-
-# %%
 rng = np.random.default_rng(0)
 
 dtype = np.float64  # use float32 to save memory
@@ -18,7 +75,7 @@ true_coef = rng.normal(size=n_features).astype(dtype)
 true_intercept = -5
 
 
-def sample_from_model(true_coef, true_intercept, n_samples):
+def sample_from_linear_model(true_coef, true_intercept, n_samples, rng):
     X_future = rng.normal(size=(n_samples, n_features)).astype(dtype)
     Z = X_future @ true_coef
     true_positive_proba = expit(Z + true_intercept)
@@ -43,11 +100,11 @@ def sample_from_model(true_coef, true_intercept, n_samples):
 
 # %%
 n_samples = 30_000_000
-X_past, y_past, true_proba_past = sample_from_model(
-    true_coef, true_intercept, n_samples
+X_past, y_past, true_proba_past = sample_from_linear_model(
+    true_coef, true_intercept, n_samples, rng
 )
-X_future, y_future, true_proba_future = sample_from_model(
-    true_coef, true_intercept, n_samples
+X_future, y_future, true_proba_future = sample_from_linear_model(
+    true_coef, true_intercept, n_samples, rng
 )
 
 # %%
