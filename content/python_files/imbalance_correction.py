@@ -252,7 +252,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # %%
-logreg_uncorrected = LogisticRegression(penalty=None).fit(X_train, y_train)
+logreg_params = dict(C=1, tol=1e-12)
+logreg_uncorrected = LogisticRegression(**logreg_params).fit(X_train, y_train)
 logreg_uncorrected.coef_, logreg_uncorrected.intercept_
 
 # %%
@@ -267,9 +268,12 @@ class_weight_for_prevalence_correction = {
     1: true_positive_rate_past / y_train.mean(),
 }
 logreg_weighted = LogisticRegression(
-    penalty=None, class_weight=class_weight_for_prevalence_correction
+    class_weight=class_weight_for_prevalence_correction, **logreg_params
 ).fit(X_train, y_train)
 logreg_weighted.coef_, logreg_weighted.intercept_
+
+# %%
+np.abs(logreg_weighted.coef_ - logreg_uncorrected.coef_).max()
 
 # %%
 roc_auc_score(y_future, logreg_weighted.predict_proba(X_future)[:, 1])
@@ -288,22 +292,51 @@ sample_weight_for_prevalence_correction = np.where(
     class_weight_for_prevalence_correction[0],
     class_weight_for_prevalence_correction[1],
 )
-logreg_weighted2 = LogisticRegression(penalty=None).fit(
+logreg_weighted2 = LogisticRegression(**logreg_params).fit(
     X_train, y_train, sample_weight=sample_weight_for_prevalence_correction
 )
 logreg_weighted2.coef_, logreg_weighted2.intercept_
-np.testing.assert_allclose(logreg_weighted.coef_, logreg_weighted2.coef_)
-np.testing.assert_allclose(logreg_weighted.intercept_, logreg_weighted2.intercept_)
 
 # %%
-# TODO: link to https://stats.stackexchange.com/a/68726/2150
+np.allclose(logreg_weighted.coef_, logreg_weighted2.coef_)
+
+# %%
+np.allclose(logreg_weighted.intercept_, logreg_weighted2.intercept_)
+
+# %% [markdown]
+#
+# From the above results, it seems that the uncorrected linear model and the
+# weight-corrected linear models only significantly differ by the value of the
+# intercept parameter.
+#
+# Indeed, it can be shown that the intercept can be corrected by shifting it by
+# the difference of the logits of the prevalence in the target population and
+# the training set.
+#
+# See for instance: https://stats.stackexchange.com/a/68726/2150
+#
+# Recall that the `logit` function is defined as:
+#
+# $$ \text{logit}(p) = \log\left(\frac{p}{1 - p}\right) \in \mathbb{R} \text{
+# for any } p \in [0, 1] $$
+#
+# Let's implement this intercept correction as follows:
+
+# %%
 from scipy.special import logit
 
-logreg_intercept_corrected = LogisticRegression(penalty=None).fit(X_train, y_train)
-logreg_intercept_corrected.intercept_ += logit(true_positive_rate_past) - logit(
-    y_train.mean()
-)
+
+logreg_intercept_corrected = LogisticRegression(**logreg_params).fit(X_train, y_train)
+
+intercept_shift = logit(true_positive_rate_past) - logit(y_train.mean())
+logreg_intercept_corrected.intercept_ += intercept_shift
+
 logreg_intercept_corrected.coef_, logreg_intercept_corrected.intercept_
+
+# %% [markdown]
+#
+# We recover an intercept value that is very close to what we use in the data
+# generating process.
 
 # %%
 roc_auc_score(y_future, logreg_intercept_corrected.predict_proba(X_future)[:, 1])
@@ -326,6 +359,29 @@ from sklearn.base import BaseEstimator, ClassifierMixin, clone
 
 
 class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
+    """Post-hoc prevalence correction for binary classifiers.
+
+    Given a classifier to be trained on a class-conditional subsampled dataset
+    and an estimate of the prevalence of the positive class in the target
+    population, estimate the conditional probability of the positive class for
+    each data point in the test set.
+
+    This meta-estimator implements the formula of Theorem 2 of:
+
+    The Foundations of Cost-Sensitive Learning, Charles Elkan, IJCAI 2001
+    https://cseweb.ucsd.edu/~elkan/rescale.pdf
+
+    p' = b'(p - pb) / (b - pb + b'p - b'b)
+
+    with:
+
+    - p' is the corrected estimate of P_target(y=1|X) on the target population.
+    - p is the observed estimate of P_data(y=1|X) on the training set.
+    - b' is the prevalence of the positive class in the target population.
+    - b is the observed prevalence of the positive class measured in the
+      training set.
+    """
+
     def __init__(self, estimator=None, target_positive_rate=0.5):
         self.estimator = estimator
         self.target_positive_rate = target_positive_rate
@@ -342,16 +398,21 @@ class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
 
     def predict_proba(self, X):
         uncorrected_proba = self.estimator_.predict_proba(X)
-        uncorrected_log_odds_ratios = np.log(
-            (uncorrected_proba[:, 1] / uncorrected_proba[:, 0])
+
+        # b'(p - pb)
+        numerator = self.target_positive_rate * (
+            uncorrected_proba[:, 1]
+            - (uncorrected_proba[:, 1] * self.observed_positive_rate_)
         )
-        corrected_log_odds_ratios = (
-            uncorrected_log_odds_ratios
-            + logit(self.target_positive_rate)
-            - logit(self.observed_positive_rate_)
+        # b - pb + b'p - b'b
+        denominator = (
+            self.observed_positive_rate_
+            - (uncorrected_proba[:, 1] * self.observed_positive_rate_)
+            + (self.target_positive_rate * uncorrected_proba[:, 1])
+            - (self.target_positive_rate * self.observed_positive_rate_)
         )
         corrected_proba = np.zeros_like(uncorrected_proba)
-        corrected_proba[:, 1] = expit(corrected_log_odds_ratios)
+        corrected_proba[:, 1] = numerator / denominator
         corrected_proba[:, 0] = 1 - corrected_proba[:, 1]
         return corrected_proba
 
@@ -361,7 +422,7 @@ class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
 
 
 logreg_post_hoc = PostHocPrevalenceCorrection(
-    estimator=LogisticRegression(penalty=None),
+    estimator=LogisticRegression(**logreg_params),
     target_positive_rate=true_positive_rate_past,
 ).fit(X_train, y_train)
 logreg_post_hoc.estimator_.coef_, logreg_post_hoc.estimator_.intercept_
@@ -373,14 +434,18 @@ logreg_post_hoc.estimator_.coef_, logreg_post_hoc.estimator_.intercept_
 # correction of the intercept parameter:
 
 # %%
-np.testing.assert_allclose(
+np.allclose(
     logreg_post_hoc.predict_proba(X_future),
     logreg_intercept_corrected.predict_proba(X_future),
 )
 
 # %% [markdown]
 #
-# Therefore we should get the same metrics as before:
+# A proof of the mathematical equivalence is given at the end of this notebook.
+
+# %% [markdown]
+#
+# Therefore we should get exactly the same evaluation metric values as before:
 
 # %%
 roc_auc_score(y_future, logreg_post_hoc.predict_proba(X_future)[:, 1])
@@ -390,90 +455,20 @@ log_loss(y_future, logreg_post_hoc.predict_proba(X_future))
 
 # %% [markdown]
 #
-# Correction based on Elkan's paper, Theorem 2:
-# The foundations of cost-sensitive learning
-# https://cseweb.ucsd.edu/~elkan/rescale.pdf
-
-
-# %%
-class ElkanPrevalenceCorrection(ClassifierMixin, BaseEstimator):
-    def __init__(self, estimator=None, target_positive_rate=0.5):
-        self.estimator = estimator
-        self.target_positive_rate = target_positive_rate
-
-    def fit(self, X, y, **fit_params):
-        if self.estimator is None:
-            estimator = LogisticRegression()
-        else:
-            estimator = clone(self.estimator)
-
-        self.estimator_ = estimator.fit(X, y, **fit_params)
-        self.observed_positive_rate_ = y.mean()
-        return self
-
-    def predict_proba(self, X):
-        uncorrected_proba = self.estimator_.predict_proba(X)
-
-        corrected_proba = np.zeros_like(uncorrected_proba)
-        # p - pb
-        numerator = uncorrected_proba[:, 1] - (
-            uncorrected_proba[:, 1] * self.observed_positive_rate_
-        )
-        # b - pb + b'p - b'b
-        denominator = (
-            self.observed_positive_rate_
-            - (uncorrected_proba[:, 1] * self.observed_positive_rate_)
-            + (self.target_positive_rate * uncorrected_proba[:, 1])
-            - (self.target_positive_rate * self.observed_positive_rate_)
-        )
-        # b' * numerator / denominator
-        corrected_proba[:, 1] = self.target_positive_rate * numerator / denominator
-        corrected_proba[:, 0] = 1 - corrected_proba[:, 1]
-        return corrected_proba
-
-    def predict(self, X):
-        proba = self.predict_proba(X)
-        return (proba[:, 1] >= 0.5).astype(np.int32)
-
-
-logreg_elkan = ElkanPrevalenceCorrection(
-    estimator=LogisticRegression(penalty=None),
-    target_positive_rate=true_positive_rate_past,
-).fit(X_train, y_train)
-logreg_elkan.estimator_.coef_, logreg_elkan.estimator_.intercept_
-
-# %%
-np.testing.assert_allclose(
-    logreg_elkan.predict_proba(X_future),
-    logreg_intercept_corrected.predict_proba(X_future),
-)
-# %%
-roc_auc_score(y_future, logreg_elkan.predict_proba(X_future)[:, 1])
-
-# %%
-log_loss(y_future, logreg_elkan.predict_proba(X_future))
-
-# %% [markdown]
-#
 # ### Questions:
 #
 # Consider the two kinds of post-hoc imbalance correction presented above:
 # - what happens when we pass `target_positive_rate=y_train.mean()`?
-# - is it possible to get `predict_proba` values that are not in `[0, 1]` by
+# - is it possible to get `predict_proba` values that are not in $[0, 1]$ by
 #   setting extreme values for `target_positive_rate`?
 #
-# Hint: the `expit` function is takes any real number as input and returns a
-# value in [0, 1]:
+# Recall that the `expit` function is takes any real number as input and
+# returns a value in [0, 1]:
 #
-# $$
-# \text{expit}(x) = \frac{1}{1 + e^{-x}} \in [0, 1] \text{ for any } x \in \mathbb{R}
-# $$
+# $$ \text{expit}(x) = \frac{1}{1 + e^{-x}} \in [0, 1] \text{ for any } x \in
+# \mathbb{R} $$
 #
-# while its inverse function is the logit function:
-#
-# $$
-# \text{logit}(p) = \log\left(\frac{p}{1 - p}\right) \in \mathbb{R} \text{ for any } p \in [0, 1]
-# $$
+# The `expit` function inverse function is the logit function.
 
 # %% [markdown]
 #
@@ -566,13 +561,26 @@ roc_auc_score(y_future, gbdt_post_hoc.predict_proba(X_future)[:, 1])
 # %%
 log_loss(y_future, gbdt_post_hoc.predict_proba(X_future))
 # %%
-gbdt_post_hoc_elkan = ElkanPrevalenceCorrection(
-    estimator=HistGradientBoostingClassifier(random_state=0),
-    target_positive_rate=true_positive_rate_past,
-).fit(X_train, y_train)
 
-# %%
-np.testing.assert_allclose(
-    gbdt_post_hoc.predict_proba(X_future)[:, 1],
-    gbdt_post_hoc_elkan.predict_proba(X_future)[:, 1],
-)
+
+# %% [markdown]
+#
+# ## Take away messages
+#
+# - It is possible to correct a binary classifier trained on observed data to
+#   correctly account for differences of prevalence between the training set
+#   and the target populations.
+# - This correction can be achieved either via training the model with
+#   appropriate class or sample weights or by applying a post-hoc correction
+#   method to the predicted probabilities.
+# - In the case of a linear model, the post-hoc correction can be achieved by
+#   adjusting the model's intercept based on the difference of the logits of
+#   the two prevalence values.
+# - For other estimators that do not have an explicit intercept parameter, this
+#   can be achieved by applying a (monotonic) transformation to the predicted
+#   probabilities.
+# - Since this correction is monotonic, the order of the predicted
+#   probabilities is preserved and therefore the ROC AUC score is not affected.
+# - It is possible to estimate the expected performance of the model on the
+#   target population only from the finite, prevalence-shifted sample by
+#   applying the same weight-based correction to the evaluation metrics.
