@@ -93,8 +93,8 @@ true_intercept = -6
 def sample_from_linear_model(true_coef, true_intercept, n_samples, seed):
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(n_samples, n_features)).astype(dtype)
-    Z = X @ true_coef
-    true_positive_proba = expit(Z + true_intercept)
+    z = X @ true_coef
+    true_positive_proba = expit(z + true_intercept)
     y = rng.binomial(n=1, p=true_positive_proba)
     true_proba = np.hstack(
         [1 - true_positive_proba[:, np.newaxis], true_positive_proba[:, np.newaxis]]
@@ -210,6 +210,8 @@ all_logistic_regression_models = {
 
 
 # %%
+_future_evaluation_cache = {}
+
 def score_models_on_population_data(models):
     records = [
         {
@@ -219,21 +221,22 @@ def score_models_on_population_data(models):
         },
     ]
     for model_name, model in models.items():
-        records.append(
-            {
-                "model_name": model_name,
-                "ROC AUC (population)": roc_auc_score(
-                    y_future, model.predict_proba(X_future)[:, 1]
-                ),
-                "log-loss (population)": log_loss(
-                    y_future, model.predict_proba(X_future)
-                ),
-            }
-        )
+        if model_name in _future_evaluation_cache:
+            records.append(_future_evaluation_cache[model_name])
+            continue
+        record = {
+            "model_name": model_name,
+            "ROC AUC (population)": roc_auc_score(
+                y_future, model.predict_proba(X_future)[:, 1]
+            ),
+            "log-loss (population)": log_loss(
+                y_future, model.predict_proba(X_future)
+            ),
+        }
+        _future_evaluation_cache[model_name] = record
+        records.append(record)
+
     return pd.DataFrame(records).round(6)
-
-
-# %%
 
 
 def compare_linear_models(models):
