@@ -106,7 +106,9 @@ model = LogisticRegression(penalty=None).fit(X, y)
 comparison_coef = pd.DataFrame(
     {
         "Data generating model": np.hstack((intercept, true_coef)),
-        "Learned model": np.hstack((model.intercept_, model.coef_.flatten())),
+        "Unpenalized logistic regression": np.hstack(
+            (model.intercept_, model.coef_.flatten())
+        ),
     },
     index=np.hstack(["intercept", model.feature_names_in_]),
 )
@@ -161,7 +163,7 @@ model_exercise = LogisticRegression(penalty=None).fit(X_exercise, y_exercise)
 comparison_coef_exercise = pd.DataFrame(
     {
         "Data generating model": np.hstack((intercept, true_coef)),
-        "Learned model": np.hstack(
+        "Unpenalized logistic regression": np.hstack(
             (model_exercise.intercept_, model_exercise.coef_.flatten())
         ),
     },
@@ -169,7 +171,10 @@ comparison_coef_exercise = pd.DataFrame(
 )
 ax = comparison_coef_exercise.plot.barh()
 _ = ax.set(
-    title="Comparison of the true and learned model coefficients",
+    title=(
+        "Comparison of the true and learned model coefficients\n"
+        "trained on a smaller dataset"
+    ),
     xlabel="Coefficient value",
     ylabel="Feature",
 )
@@ -238,7 +243,7 @@ _ = (
 from sklearn.calibration import CalibrationDisplay
 
 display = CalibrationDisplay.from_estimator(model, X, y, n_bins=10, strategy="quantile")
-display.plot()
+_ = display.ax_.set_title("Calibration curve of the unpenalized logistic regression")
 
 # %% [markdown]
 #
@@ -252,7 +257,11 @@ axis_lim = (
     min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
     max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
 )
-_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
+_ = display.ax_.set(
+    xlim=axis_lim,
+    ylim=axis_lim,
+    title="Calibration curve of the unpenalized logistic regression",
+)
 
 # %% [markdown]
 #
@@ -292,7 +301,8 @@ np.allclose(y_pred, y_proba[:, 1] > 0.5)
 # %%
 from sklearn.metrics import ConfusionMatrixDisplay
 
-_ = ConfusionMatrixDisplay.from_predictions(y, y_pred)
+display = ConfusionMatrixDisplay.from_predictions(y, y_pred)
+_ = display.ax_.set_title("Confusion matrix of the unpenalized logistic regression")
 
 # %% [markdown]
 #
@@ -348,7 +358,8 @@ model = make_pipeline(
 # classification report.
 
 # %%
-_ = ConfusionMatrixDisplay.from_estimator(model, X, y)
+display = ConfusionMatrixDisplay.from_estimator(model, X, y)
+_ = display.ax_.set_title("Confusion matrix of the under-sampled logistic regression")
 
 # %%
 print(classification_report(y, model.predict(X)))
@@ -401,6 +412,9 @@ display = CalibrationDisplay.from_estimator(
     strategy="quantile",
     name="Model trained on under-sampled data",
 )
+display.ax_.set_title(
+    "Calibration curve of the under-sampled logistic regression"
+)
 _ = display.ax_.legend(loc="upper right")
 
 # %% [markdown]
@@ -440,10 +454,17 @@ axis_lim = (
     min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
     max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
 )
-_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
+_ = display.ax_.set(
+    xlim=axis_lim,
+    ylim=axis_lim,
+    title="Calibration curve of the calibrated under-sampled logistic regression",
+)
 
 # %%
-ConfusionMatrixDisplay.from_estimator(calibrated_model, X, y)
+display = ConfusionMatrixDisplay.from_estimator(calibrated_model, X, y)
+_ = display.ax_.set_title(
+    "Confusion matrix of the calibrated under-sampled logistic regression"
+)
 
 # %%
 print(classification_report(y, calibrated_model.predict(X)))
@@ -466,17 +487,14 @@ print(classification_report(y, calibrated_model.predict(X)))
 # Therefore, it tells us that we should be careful with the choice of evaluation metrics
 # and how it interacts with the choice of the decision cut-off threshold.
 #
-# TODO rephrase the below paragraph
-# - proba should be good and ignore the threshold
-# - if we have metrics impacted by the threshold, consider the metrics for different
-#   thresholds to see the impact of the threshold on the metrics
+# Ranking metrics (e.g. ROC AUC) and probabilistic metrics (e.g. log loss) that assess
+# both ranking and calibration of the predictive model at the same time are good choices
+# but do not reflect on the choice of the decision cut-off threshold.
 #
-# use a ranking metric (e.g. ROC AUC), a probabilistic metric that assess both ranking
-# and calibration of the predictive model at the same time (e.g. log loss).
-# The decision cut-off threshold does not impact those type of metrics.
-# An alternative is to represent "thresholded" metrics for all possible decision cut-off
-# thresholds. If we have a specific "thresholded" metric, then we need to tune the
-# decision cut-off threshold and not let it to be set at 0.5.
+# "Thresholded" metrics (e.g. precision, recall) are impacted by the decision cut-off
+# threshold. Therefore, looking such metrics only for a single decision cut-off
+# is not informative enough. It is required to look at those metrics by varying the
+# decision cut-off threshold.
 #
 # The next section focuses on setting the decision cut-off threshold when the evaluation
 # metric of interest is a "thresholded" metric.
@@ -505,7 +523,7 @@ model = LogisticRegression(penalty=None).fit(X, y)
 #
 # Now, let's say that we would like to get a model with a specific precision-recall
 # trade-off. For such analysis, we compute the precision and recall as a function of
-# the decision cut-off threshold.
+# the decision cut-off threshold as well as the precision-recall curve.
 
 # %%
 import numpy as np
@@ -518,7 +536,7 @@ from sklearn.metrics import make_scorer, precision_score, recall_score
 # https://github.com/scikit-learn/scikit-learn/pull/31338
 from sklearn.metrics._scorer import _CurveScorer as CurveScorer
 
-thresholds = np.linspace(0, 1, 50)
+thresholds = np.linspace(0, 1, 100)
 precision_curve_scorer = CurveScorer.from_scorer(
     make_scorer(precision_score, zero_division=0),
     response_method="predict_proba",
@@ -606,21 +624,27 @@ fig_plotly.update_xaxes(title_text="Recall", range=[0, 1], row=1, col=2)
 fig_plotly.update_yaxes(title_text="Precision", range=[0, 1], row=1, col=2)
 fig_plotly.show()
 
-# TODO: mention that we want a minimum level of precision (5%) such that our human does
-# not tired of reviewing false positive cases and to expensive. But we want to maximize
-# the recall for that level of precision. cf. predictive maintenance.
-
 # %% [markdown]
 #
 # Using these curves, we now can make a choice regarding a specific trade-off between
-# the level of recall and precision for our classifier. Here, let's select the threshold
-# for which the precision and recall curve intersect (i.e. ~0.09).
+# the level of recall and precision for our classifier. Let's expose a possible use
+# case: our model could be used for medical diagnosis and in this particular setting,
+# we could imagine that physicians reviewing cases of rare diseases expect a certain
+# level of precision of the computer-aided diagnosis system. Otherwise, the system
+# will show too many false positive cases, tiring the physicians, leading to potential
+# errors. However, while expecting a certain level of precision, we also would like our
+# computer-aided diagnosis system to maximize the recall level.
+#
+# Thus, by looking at the precision-recall curve above, we could impose a minimum level
+# of precision of 10%. It means that it would define an horizontal line at 0.05 on the
+# y-axis. We will consider all points above this line and seek for the maximum recall
+# and deduce the corresponding threshold that is 0.07.
 #
 # ### Exercise
 #
 # Using the `FixedThresholdClassifier` meta-estimator, set the decision cut-off
 # threshold to the value for which the precision and recall curve intersect (i.e.
-# ~0.09). Check the calibration curve, the confusion matrix, and the classification
+# ~0.07). Check the calibration curve, the confusion matrix, and the classification
 # report.
 #
 # Is the model the resulting model well calibrated? What are the level of precision and
@@ -635,7 +659,7 @@ from sklearn.model_selection import FixedThresholdClassifier
 # ### Solution
 
 # %%
-threshold = 0.09
+threshold = 0.07
 model = FixedThresholdClassifier(
     LogisticRegression(penalty=None), threshold=threshold
 ).fit(X, y)
@@ -647,10 +671,17 @@ axis_lim = (
     min(display.prob_true.min(), display.prob_pred.min()) * 0.9,
     max(display.prob_true.max(), display.prob_pred.max()) * 1.1,
 )
-_ = display.ax_.set(xlim=axis_lim, ylim=axis_lim)
+_ = display.ax_.set(
+    xlim=axis_lim,
+    ylim=axis_lim,
+    title="Calibration curve of the fixed threshold logistic regression",
+)
 
 # %%
-ConfusionMatrixDisplay.from_estimator(model, X, y)
+display = ConfusionMatrixDisplay.from_estimator(model, X, y)
+_ = display.ax_.set_title(
+    "Confusion matrix of the fixed threshold logistic regression"
+)
 
 # %%
 print(classification_report(y, model.predict(X)))
@@ -660,42 +691,44 @@ print(classification_report(y, model.predict(X)))
 # As expected, we observe that the model is well calibrated because modifying the
 # decision cut-off threshold does not impact the calibration of the model.
 #
-# With the selected threshold, we expected to have similar precision and recall scores
-# for the class of interest. It is exactly what we observe.
+# With the selected threshold, we expect to have a minimum level of precision of 10%
+# which is exactly what we observe.
 #
 # While it is an interesting exercise, setting the threshold manually is not the best
 # practice. It would be better to use the `TunedThresholdClassifierCV` meta-estimator to
 # tune the decision cut-off threshold to maximize a specific metric or a specific
 # trade-off using cross-validation.
 #
-# Below, we show a case where we want to maximize the precision score but such that the
-# model reach a minimum recall score. We therefore need to create a custom function that
-# can be used by the `TunedThresholdClassifierCV` meta-estimator.
+# Below, we show a case where we want to maximize the recall score but such that the
+# model reach a minimum precision score. We therefore need to create a custom function
+# that can be used by the `TunedThresholdClassifierCV` meta-estimator.
 
 
-# TODO: switch precision and recall.
 # %%
-def maximize_precision_under_constrained_recall(y_true, y_pred, recall_level):
+def maximize_recall_under_constrained_precision(y_true, y_pred, precision_level):
     precision, recall = precision_score(y_true, y_pred), recall_score(y_true, y_pred)
 
-    if recall < recall_level:
-        # under a certain recall level, we cannot accept the model and thus return
+    if precision < precision_level:
+        # under a certain precision level, we cannot accept the model and thus return
         # the worst possible score.
         return -np.inf
-    return precision
+    return recall
 
 
 # %%
 from sklearn.model_selection import TunedThresholdClassifierCV
 
-# create a scorer that maximizes the precision but such that the recall is at least 0.3
-scoring = make_scorer(maximize_precision_under_constrained_recall, recall_level=0.3)
+# create a scorer that maximizes the recall but such that the precision is at least 0.1
+scoring = make_scorer(maximize_recall_under_constrained_precision, precision_level=0.1)
 model = TunedThresholdClassifierCV(
     estimator=LogisticRegression(penalty=None), scoring=scoring, n_jobs=-1
 ).fit(X, y)
 
 # %%
-_ = ConfusionMatrixDisplay.from_estimator(model, X, y)
+display = ConfusionMatrixDisplay.from_estimator(model, X, y)
+_ = display.ax_.set_title(
+    "Confusion matrix of the tuned threshold logistic regression"
+)
 
 # %%
 print(classification_report(y, model.predict(X)))
@@ -704,9 +737,9 @@ print(classification_report(y, model.predict(X)))
 #
 # Looking at the confusion matrix, we observe that we detect a certain number of rare
 # events. Looking into the classification report, we observe that the constraint set on
-# the recall is respected (i.e. the recall is 0.36). For such recall, the maximum
-# precision is 0.08. Now, let's check what is the decision cut-off threshold that was
-# found during the cross-validation procedure.
+# the precision is respected (i.e. the precision is 0.11). For such precision, the
+# maximum recall is 0.15. Now, let's check what is the decision cut-off threshold that
+# was found during the cross-validation procedure.
 
 # %%
 float(model.best_threshold_)
