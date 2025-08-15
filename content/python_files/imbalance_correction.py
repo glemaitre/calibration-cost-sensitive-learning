@@ -87,7 +87,7 @@ rng = np.random.default_rng(0)
 dtype = np.float32  # use float32 to save memory
 n_features = 5
 true_coef = rng.normal(size=n_features).astype(dtype)
-true_intercept = -6
+true_intercept = -6  # This will make the positive class very rare.
 
 
 def sample_from_linear_model(true_coef, true_intercept, n_samples, seed):
@@ -146,7 +146,6 @@ pd.Series(true_proba_future[:, 1]).describe()
 
 # %%
 from sklearn.metrics import roc_auc_score, log_loss
-
 
 roc_auc_score(y_future, true_proba_future[:, 1])
 
@@ -549,7 +548,7 @@ score_models_on_population_data(all_models)
 # TODO: do not read the solution before writing done your answers ;)
 
 # %% [markdown]
-# 
+#
 # ### Answers:
 #
 # - When we pass `target_positive_rate=y_train.mean()`, the intercept
@@ -728,6 +727,94 @@ score_models_on_population_data(all_models)
 
 # %% [markdown]
 #
-# ## Appendix: equivalence between post-hoc correction methods
+# ## Appendix: equivalence between the two post-hoc correction methods
 #
-# TODO
+# In the following, we show that the logit based shift of the intercept is
+# equivalent to the Elkan's formula.
+#
+# Let's first check empirically with matplotlib:
+
+def logit_prevalence_correction(p, target_prevalence, observed_prevalence):
+    corrected_logits = logit(p) + logit(target_prevalence) - logit(observed_prevalence)
+    return expit(corrected_logits)
+
+p = np.linspace(0, 1, 100)
+
+target_prevalence = 0.01
+observed_prevalence = 0.25
+plt.plot(
+    p,
+    elkan_prevalence_correction(
+        p,
+        target_prevalence=target_prevalence,
+        observed_prevalence=observed_prevalence,
+    ),
+    label="Elkan's formula",
+)
+plt.plot(
+    p,
+    logit_prevalence_correction(
+        p,
+        target_prevalence=target_prevalence,
+        observed_prevalence=observed_prevalence,
+    ),
+    linestyle="--",
+    label="Difference of prevalence logits",
+)
+plt.xlabel("Observed P(y=1|X)")
+plt.ylabel("Corrected P(y=1|X)")
+_ = plt.legend()
+
+
+# %% [markdown]
+#
+# Let's ask Claude to check that $p' = \frac{b'(p - pb)}{b - pb + b'p - b'b}$
+# can be rewritten as $p' = \text{expit}(\text{logit}(p) + \text{logit}(b') -
+# \text{logit}(b))$ (reusing the notation of Elkan's paper):
+#
+# Starting with the right-hand side: $$p' = \text{expit}(\text{logit}(p) +
+# \text{logit}(b') - \text{logit}(b))$$
+#
+# Recall that:
+#
+# - $\text{logit}(x) = \ln\left(\frac{x}{1-x}\right)$
+# - $\text{expit}(x) = \frac{e^x}{1 + e^x} = \frac{1}{1 + e^{-x}}$
+#
+# Expand the argument of expit:
+#
+# $$\text{logit}(p) + \text{logit}(b') - \text{logit}(b) =
+# \ln\left(\frac{p}{1-p}\right) + \ln\left(\frac{b'}{1-b'}\right) -
+# \ln\left(\frac{b}{1-b}\right)$$
+#
+# Using logarithm properties: $$= \ln\left[\frac{p}{1-p} \times \frac{b'}{1-b'}
+# \times \frac{1-b}{b}\right] = \ln\left[\frac{p \cdot b' \cdot (1-b)}{(1-p)
+# \cdot (1-b') \cdot b}\right]$$
+#
+# Apply expit function:
+#
+# $$p' = \frac{1}{1 + e^{-\ln\left[\frac{p \cdot b' \cdot (1-b)}{(1-p) \cdot
+# (1-b') \cdot b}\right]}}$$
+#
+# Since $e^{-\ln(x)} = \frac{1}{x}$: $$p' = \frac{1}{1 + \frac{(1-p) \cdot
+# (1-b') \cdot b}{p \cdot b' \cdot (1-b)}}$$
+#
+# Multiplying numerator and denominator by $p \cdot b' \cdot (1-b)$: $$p' =
+# \frac{p \cdot b' \cdot (1-b)}{p \cdot b' \cdot (1-b) + (1-p) \cdot (1-b')
+# \cdot b}$$
+#
+# Expand the denominator:
+#
+# $$p \cdot b' \cdot (1-b) + (1-p) \cdot (1-b') \cdot b$$ $$= pb'(1-b) +
+# (1-p)(1-b')b$$ $$= pb' - pb'b + b - pb - b'b + pb'b$$
+#
+# The $pb'b$ terms cancel: $$= pb' + b - pb - b'b$$ $$= b'p - pb + b - b'b$$
+# $$= b - pb + b'p - b'b$$
+#
+# Simplify the numerator:
+#
+# $$p \cdot b' \cdot (1-b) = pb'(1-b) = pb' - pb'b = b'p - b'pb = b'(p - pb)$$
+#
+# Therefore: $$p' = \frac{b'(p - pb)}{b - pb + b'p - b'b}$$
+#
+# This matches exactly the formula of Elkan's paper, completing the proof.
+# $\square$
