@@ -3,17 +3,17 @@
 # # Handling prevalence shift in imbalanced classification problems
 #
 # The purpose of this study is to illustrate how to handle extreme class
-# imbalance in the common setting where the **data acquisition process does not
-# reflect the true class imbalance of the target distribution**.
+# imbalance in the common setting where the **data acquisition process itself
+# corrupts the prevalence of the rare class**.
 #
 # This setting is quite common in practice: for instance, to develop a
 # computer-aided diagnosis system, the data acquisition process might collect
 # data (feature values) for all known cases of a given rare disease of interest
 # (the positive class): **since the positive cases are rare, we don't want to
 # waste any of them** and want include them all in our dataset. However, it
-# would be **infeasible** to collect feature values for all the negative
-# subjects in the target population because they are too many of them: it would
-# be too costly and might also cause ethical and privacy issues.
+# would be **impossible to collect feature values for all the negative
+# subjects** in the target population because they are too many of them: it
+# would be too costly and might also cause ethical and privacy issues.
 #
 # Instead, we sample negative subjects from the population at random to measure
 # their feature values only for those (and check that they do not have the
@@ -21,11 +21,11 @@
 #
 # As a result, **the prevalence of the positive class in the collected dataset
 # does not reflect the prevalence of the positive class in the target
-# population**. We want to train a probabilistic model on the finite observed
-# data that achieves the best performance possible when deployed on the target
-# population. Furthermore, we want to conduct this performance evaluation
-# despite the fact that we cannot directly measure the performance on the full
-# target population at once. We will therefore need to:
+# population**. Still, we do want to train a probabilistic model on the finite
+# collected data that achieves the best performance possible when deployed on
+# the target population. Furthermore, we want to conduct this performance
+# evaluation despite the fact that we cannot directly measure the performance
+# on the full target population at once. We will therefore need to:
 #
 # - **adapt the training procedure** to take the prevalence shift into account
 #   to learn a model that yields meaningful probabilistic predictions on the
@@ -208,7 +208,6 @@ all_logistic_regression_models = {
     "LogReg fit on future data": cheating_model,
 }
 
-
 # %%
 _future_evaluation_cache = {}
 
@@ -222,6 +221,8 @@ def score_models_on_population_data(models):
     ]
     for model_name, model in models.items():
         if model_name in _future_evaluation_cache:
+            # Repeatedly computing predictions and ROC-AUC on millions of data
+            # points can be slow hence we use a cache.
             records.append(_future_evaluation_cache[model_name])
             continue
         record = {
@@ -611,12 +612,12 @@ _ = plt.legend()
 # If we naively evaluate the model on the observed test data, we will get
 # misleading results: the model will be evaluated on a test set that does not
 # reflect the true class prevalence, hence calibration sensitive losses such as
-# the log-loss will give very inaccurate estimates of the population log-loss.
+# the log-loss will give very inaccurate estimates of the population log-loss:
 
 log_loss(y_test, logreg_uncorrected.predict_proba(X_test))
 
 # %%
-log_loss(y_test, logreg_intercept_corrected.predict_proba(X_test))
+log_loss(y_future, logreg_uncorrected.predict_proba(X_future))
 
 # %% [markdown]
 #
@@ -665,7 +666,13 @@ log_loss(y_future, logreg_intercept_corrected.predict_proba(X_future))
 # %% [markdown]
 #
 # We can see that weighting the test observed makes it possible to approximate
-# the population log-loss (at least up to 3 decimal places in this case).
+# the population log-loss (at least up to 2 to 3 decimal places in this case).
+#
+# Let's improve our evaluation tools to consolidate all scores for all models:
+
+# %%
+# TODO
+
 
 # %% [markdown]
 #
