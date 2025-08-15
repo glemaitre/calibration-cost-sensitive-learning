@@ -5,18 +5,24 @@ format: jb-book
 root: intro
 parts:
 
+- caption: The problem of imbalanced classification
+  chapters:
+  - file: content/notebooks/imbalanced_classification
+  - file: content/notebooks/prevalence_correction
+  # - file: content/notebooks/regularization_under_sampling
+  # - file: content/notebooks/computational_performance
+
 - caption: Cost-sensitive learning
   chapters:
   - file: content/notebooks/cost_sensitive_learning
 
-- caption: Classification metrics
+- caption: Deep-dive into classification metrics
   chapters:
   - file: content/notebooks/classification_metrics
 
-- caption: Calibration
+- caption: Deep-dive into calibration
   chapters:
   - file: content/notebooks/build_calibration_curve
   - file: content/notebooks/different_calibration_curves
   - file: content/notebooks/miscalibration_under_over_fit
-  - file: content/notebooks/miscalibration_reweighting
-
+  # - file: content/notebooks/miscalibration_reweighting

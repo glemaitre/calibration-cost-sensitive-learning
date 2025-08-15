@@ -13,12 +13,16 @@ generate-predictions = { cmd = "python _generate_predictions.py", cwd = "content
 jupyterlab = ">=4.2.4,<5"
 numpy = ">=2.0.1,<3"
 scipy = ">=1.14.0,<2"
-scikit-learn = ">=1.5.1,<2"
+scikit-learn = ">=1.7.1,<2"
 pandas = ">=2.2.2,<3"
 matplotlib = ">=3.9.1,<4"
 jupytext = ">=1.16.4,<2"
 notebook = ">=7.2.1,<8"
 fastparquet = ">=2024.11.0,<2025"
+imbalanced-learn = ">=0.14.0,<1"
+plotly = ">=6.2.0,<7"
+skrub = ">=0.6.0,<0.7"
+skore = ">=0.10.0,<0.11"
 
 [feature.dev.dependencies]
 ipykernel = "*"
@@ -34,8 +38,11 @@ jupyterlite-pyodide-kernel = "*"
 python-libarchive-c = "*"
 
 [feature.doc.tasks]
+
+create-notebooks-dir = { cmd = "mkdir -p ./content/notebooks" }
+copy-pickles = { cmd = "cp ./content/python_files/*.joblib ./content/notebooks/", depends-on = ["create-notebooks-dir"] }
 convert-to-notebooks = { cmd = "jupytext --to notebook ./content/python_files/*.py && mkdir -p ./content/notebooks && mv ./content/python_files/*.ipynb ./content/notebooks" }
-convert-to-executed-notebooks = { cmd = "jupytext --to notebook --execute ./content/python_files/*.py && mkdir -p ./content/notebooks && mv ./content/python_files/*.ipynb ./content/notebooks" }
+convert-to-executed-notebooks = { cmd = "jupytext --to notebook --execute ./content/python_files/*.py && mkdir -p ./content/notebooks && mv ./content/python_files/*.ipynb ./content/notebooks", depends-on = ["create-notebooks-dir", "copy-pickles"] }
 build-book = { cmd = "jupyter-book build book", depends-on = ["convert-to-notebooks"] }
 build-jupyterlite = { cmd = "jupyter lite build --contents content --output-dir dist", cwd = "jupyterlite" }
 serve-jupyterlite = { cmd = "python -m http.server", cwd = "jupyterlite/dist", depends-on = ["build-jupyterlite"] }
