@@ -302,12 +302,13 @@ population_comparator.plot_linear_model_parameters()
 # place.
 
 # %%
-X_positive = X_past[y_past == 1].copy()
-y_positive = y_past[y_past == 1].copy()
+mask_positive_target = y_past == 1
+X_positive = X_past[mask_positive_target].copy()
+y_positive = y_past[mask_positive_target].copy()
 
 rng = np.random.default_rng(0)
 negative_indices = rng.choice(
-    np.arange(len(y_past))[y_past == 0],
+    np.flatnonzero(~mask_positive_target),
     size=3 * len(y_positive),
     replace=False,
 )
