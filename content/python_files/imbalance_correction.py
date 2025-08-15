@@ -406,13 +406,12 @@ compare_linear_models(all_logistic_regression_models)
 
 # %% [markdown]
 #
-# Let's now consider a more generic post-hoc imbalance correction that does not
-# require the base model to be a logistic regression model with an explicit
-# `intercept_` parameter. Instead, we assume that the prediction of the base
-# model to be computed by applying the `expit` (a.k.a. the logistic sigmoid)
-# function to some estimate of the log-odds ratio for each data point. This is
-# the case for gradient boosting models where the log-odds are estimated by the
-# sum of the predictions of the individual trees in the ensemble for instance.
+# Let's now consider a more generic post-hoc prevalence correction that does
+# not require the base model to be a logistic regression model with an explicit
+# `intercept_` parameter.
+#
+# Charles Elkan proposed a closed-form formula to correct the predicted
+# probabilities of any binary classifier:
 
 # %%
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
@@ -437,8 +436,8 @@ def elkan_prevalence_correction(
 
     with:
 
-    - p' is the corrected estimate of P_target(y=1|X) on the target population.
-    - p is the observed estimate of P_data(y=1|X) on the training set.
+    - p' is the corrected estimate of P_target(y=1|X=x) on the target population.
+    - p is the observed estimate of P_data(y=1|X=x) on the training set.
     - b' is the prevalence of the positive class in the target population.
     - b is the observed prevalence of the positive class measured in the
       training set.
@@ -456,7 +455,12 @@ def elkan_prevalence_correction(
     )
     return numerator / denominator
 
+# %% [markdown]
+#
+# We can wrap this correction function into a meta-estimator compatible
+# with the scikit-learn API:
 
+# %%
 class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
 
     def __init__(self, estimator=None, target_positive_rate=0.5):
