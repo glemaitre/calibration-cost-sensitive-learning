@@ -724,6 +724,12 @@ score_models_on_population_data(all_models)
 # - It is possible to estimate the expected performance of the model on the
 #   target population only from the finite, prevalence-shifted sample by
 #   applying the same weight-based correction to the evaluation metrics.
+#
+# Open question: the weight-based training prevalence correction and the
+# post-training closed-form prevalence correction methods can yield slightly
+# different results in practice (although both should converge to the Bayes
+# optimal classifier as the sample size increases). Are there reasons to favor
+# one over the other in the finite sample case?
 
 # %% [markdown]
 #
