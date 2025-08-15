@@ -50,7 +50,8 @@
 # with the target population. We will use synthetic data generated from a known
 # data generating process so as to make it possible to check that our proposed
 # training and evaluation methods can achieve that objective.
-#
+
+# %% [markdown]
 # ## Data generating process
 #
 # Let's define a "true" data generating process that represent some fundamental
@@ -165,7 +166,7 @@ log_loss(y_past, true_proba_past)
 #   true probabilities?
 
 # %%
-# # TODO: write your answers here before scrolling down.
+# TODO: write your answers here before scrolling down.
 #
 #
 #
@@ -203,64 +204,80 @@ log_loss(y_past, true_proba_past)
 from sklearn.linear_model import LogisticRegression
 
 cheating_model = LogisticRegression(penalty=None).fit(X_future, y_future)
-all_logistic_regression_models = {
-    "LogReg fit on future data": cheating_model,
-}
+
 
 # %%
-_future_evaluation_cache = {}
+class ModelComparator:
+    def __init__(self, X, y, context_name, sample_weight=None):
+        self.X = X
+        self.y = y
+        self.sample_weight = sample_weight
+        self.context_name = context_name
+        self.models = {}
+        self.evaluation_records = []
 
-def score_models_on_population_data(models):
-    records = [
-        {
-            "model_name": "Data generating model",
-            "ROC AUC (population)": roc_auc_score(y_future, true_proba_future[:, 1]),
-            "log-loss (population)": log_loss(y_future, true_proba_future),
-        },
-    ]
-    for model_name, model in models.items():
-        if model_name in _future_evaluation_cache:
-            # Repeatedly computing predictions and ROC-AUC on millions of data
-            # points can be slow hence we use a cache.
-            records.append(_future_evaluation_cache[model_name])
-            continue
-        record = {
-            "model_name": model_name,
-            "ROC AUC (population)": roc_auc_score(
-                y_future, model.predict_proba(X_future)[:, 1]
-            ),
-            "log-loss (population)": log_loss(
-                y_future, model.predict_proba(X_future)
-            ),
-        }
-        _future_evaluation_cache[model_name] = record
-        records.append(record)
+    def score_model(self, model_name, predicted_proba):
+        self.evaluation_records.append(
+            {
+                "Model": model_name,
+                f"ROC AUC ({self.context_name})": roc_auc_score(
+                    self.y,
+                    predicted_proba[:, 1],
+                    sample_weight=self.sample_weight,
+                ),
+                f"log-loss ({self.context_name})": log_loss(
+                    self.y,
+                    predicted_proba,
+                    sample_weight=self.sample_weight,
+                ),
+            }
+        )
+        return self
 
-    return pd.DataFrame(records).round(6)
+    def register_linear_data_generating_model(self, true_coef, true_intercept):
+        self.true_coef = true_coef
+        self.true_intercept = true_intercept
+        oracle_proba = expit(self.true_intercept + self.X @ self.true_coef).values
+        oracle_proba = np.hstack(
+            [1 - oracle_proba[:, np.newaxis], oracle_proba[:, np.newaxis]]
+        )
+        self.score_model("Data generating model", oracle_proba)
+        return self
+
+    def register_model(self, model_name, model):
+        self.models[model_name] = model
+        self.score_model(model_name, model.predict_proba(self.X))
+        return self
+
+    def score_table(self):
+        return pd.DataFrame(self.evaluation_records).round(6).set_index("Model")
+
+    def plot_linear_model_parameters(self):
+        column_data = {}
+        if hasattr(self, "true_coef"):
+            column_data["Data generating model"] = np.hstack(
+                (self.true_intercept, self.true_coef)
+            )
+        column_data.update(
+            {
+                model_name: np.hstack((model.intercept_, model.coef_.flatten()))
+                for model_name, model in self.models.items()
+            }
+        )
+        pd.DataFrame(
+            column_data,
+            index=np.hstack(["intercept", self.X.columns]),
+        ).plot.barh().set(
+            title="Comparison of the true and learned model parameters",
+            xlabel="Parameter value",
+            ylabel="Parameter name",
+        )
 
 
-def compare_linear_models(models):
-    column_data = {
-        "Data generating model": np.hstack((true_intercept, true_coef)),
-    }
-    column_data.update(
-        {
-            model_name: np.hstack((model.intercept_, model.coef_.flatten()))
-            for model_name, model in models.items()
-        }
-    )
-    pd.DataFrame(
-        column_data,
-        index=np.hstack(["intercept", X_future.columns]),
-    ).plot.barh().set(
-        title="Comparison of the true and learned model parameters",
-        xlabel="Parameter value",
-        ylabel="Parameter name",
-    )
-    return score_models_on_population_data(models)
-
-
-compare_linear_models(all_logistic_regression_models)
+population_comparator = ModelComparator(X_future, y_future, context_name="population")
+population_comparator.register_linear_data_generating_model(true_coef, true_intercept)
+population_comparator.register_model("LogReg fit on future data", cheating_model)
+population_comparator.plot_linear_model_parameters()
 
 # %% [markdown]
 #
@@ -321,8 +338,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 logreg_params = dict(penalty=None, tol=1e-8)
 logreg_uncorrected = LogisticRegression(**logreg_params).fit(X_train, y_train)
 
-all_logistic_regression_models["Uncorrected LogReg"] = logreg_uncorrected
-compare_linear_models(all_logistic_regression_models)
+population_comparator.register_model("Uncorrected LogReg", logreg_uncorrected)
+population_comparator.plot_linear_model_parameters()
+population_comparator.score_table()
 
 
 # %%
@@ -337,12 +355,9 @@ logreg_weighted = LogisticRegression(
     class_weight=class_weight_for_prevalence_correction, **logreg_params
 ).fit(X_train, y_train)
 
-all_logistic_regression_models["Weight-corrected LogReg"] = logreg_weighted
-compare_linear_models(all_logistic_regression_models)
-
-# %%
-# TODO: investigate why the following is not closer to 0...
-np.abs(logreg_weighted.coef_ - logreg_uncorrected.coef_).max()
+population_comparator.register_model("Weight-corrected LogReg", logreg_weighted)
+population_comparator.plot_linear_model_parameters()
+population_comparator.score_table()
 
 # %% [markdown]
 #
@@ -372,9 +387,9 @@ np.allclose(logreg_weighted.intercept_, logreg_weighted2.intercept_)
 # weight-corrected linear models only significantly differ by the value of the
 # intercept parameter.
 #
-# Indeed, it can be shown that the intercept can be corrected by shifting it by
-# the difference of the logits of the prevalence in the target population and
-# the training set.
+# Indeed, it can be shown that the intercept of a logistic regression model can
+# be corrected by shifting it by the difference of the logits of the prevalence
+# in the target population and the training set.
 #
 # See for instance: https://stats.stackexchange.com/a/68726/2150
 #
@@ -394,10 +409,11 @@ logreg_intercept_corrected = LogisticRegression(**logreg_params).fit(X_train, y_
 intercept_shift = logit(true_positive_rate_past) - logit(y_train.mean())
 logreg_intercept_corrected.intercept_ += intercept_shift
 
-all_logistic_regression_models["Intercept-corrected LogReg"] = (
-    logreg_intercept_corrected
+population_comparator.register_model(
+    "Intercept-corrected LogReg", logreg_intercept_corrected
 )
-compare_linear_models(all_logistic_regression_models)
+population_comparator.plot_linear_model_parameters()
+population_comparator.score_table()
 
 # %% [markdown]
 #
@@ -413,10 +429,8 @@ compare_linear_models(all_logistic_regression_models)
 # Charles Elkan proposed a closed-form formula to correct the predicted
 # probabilities of any binary classifier:
 
+
 # %%
-from sklearn.base import BaseEstimator, ClassifierMixin, clone
-
-
 def elkan_prevalence_correction(
     uncorrected_positive_proba, target_prevalence, observed_prevalence
 ):
@@ -455,12 +469,16 @@ def elkan_prevalence_correction(
     )
     return numerator / denominator
 
+
 # %% [markdown]
 #
 # We can wrap this correction function into a meta-estimator compatible
 # with the scikit-learn API:
 
 # %%
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
+
+
 class PostHocPrevalenceCorrection(ClassifierMixin, BaseEstimator):
 
     def __init__(self, estimator=None, target_positive_rate=0.5):
@@ -513,15 +531,15 @@ np.allclose(
 
 # %% [markdown]
 #
-# A proof of the mathematical equivalence is given at the end of this notebook.
+# A proof of the mathematical equivalence is given as an appendix at the end of
+# this notebook.
 
 # %% [markdown]
 #
 # Therefore we should get exactly the same evaluation metric values as before:
 
-all_models = all_logistic_regression_models.copy()
-all_models["Post-hoc corrected LogReg"] = logreg_post_hoc
-score_models_on_population_data(all_models)
+population_comparator.register_model("Post-hoc corrected LogReg", logreg_post_hoc)
+population_comparator.score_table()
 
 # %% [markdown]
 #
@@ -590,10 +608,13 @@ for target_prevalence, observed_prevalence in [
             target_prevalence=target_prevalence,
             observed_prevalence=observed_prevalence,
         ),
-        label=f"Target prevalence: {target_prevalence:.2f}, Observed prevalence: {observed_prevalence:.2f}",
+        label=(
+            f"Target prevalence: {target_prevalence:.2f}, "
+            f"observed prevalence: {observed_prevalence:.2f}"
+        ),
     )
-plt.xlabel("Observed P(y=1|X)")
-plt.ylabel("Corrected P(y=1|X)")
+plt.xlabel("Observed P(y=1|X=x)")
+plt.ylabel("Corrected P(y=1|X=x)")
 plt.title("Elkan Prevalence Correction")
 _ = plt.legend()
 
@@ -685,8 +706,8 @@ log_loss(y_future, logreg_intercept_corrected.predict_proba(X_future))
 from sklearn.ensemble import HistGradientBoostingClassifier
 
 gbdt_uncorrected = HistGradientBoostingClassifier(random_state=0).fit(X_train, y_train)
-all_models["Uncorrected GBDT"] = gbdt_uncorrected
-score_models_on_population_data(all_models)
+population_comparator.register_model("Uncorrected GBDT", gbdt_uncorrected)
+population_comparator.score_table()
 
 # %%
 gbdt_weighted = HistGradientBoostingClassifier(
@@ -694,8 +715,8 @@ gbdt_weighted = HistGradientBoostingClassifier(
     class_weight=class_weight_for_prevalence_correction,
 ).fit(X_train, y_train)
 # %%
-all_models["Weight-corrected GBDT"] = gbdt_weighted
-score_models_on_population_data(all_models)
+population_comparator.register_model("Weight-corrected GBDT", gbdt_weighted)
+population_comparator.score_table()
 
 # %%
 gbdt_post_hoc = PostHocPrevalenceCorrection(
@@ -704,8 +725,8 @@ gbdt_post_hoc = PostHocPrevalenceCorrection(
 ).fit(X_train, y_train)
 
 # %%
-all_models["Post-hoc corrected GBDT"] = gbdt_post_hoc
-score_models_on_population_data(all_models)
+population_comparator.register_model("Post-hoc corrected GBDT", gbdt_post_hoc)
+population_comparator.score_table()
 
 # %% [markdown]
 #
@@ -744,9 +765,11 @@ score_models_on_population_data(all_models)
 #
 # Let's first check empirically with matplotlib:
 
+
 def logit_prevalence_correction(p, target_prevalence, observed_prevalence):
     corrected_logits = logit(p) + logit(target_prevalence) - logit(observed_prevalence)
     return expit(corrected_logits)
+
 
 p = np.linspace(0, 1, 100)
 
