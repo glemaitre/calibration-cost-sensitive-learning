@@ -428,7 +428,7 @@ def elkan_prevalence_correction(
     population, estimate the conditional probability of the positive class for
     each data point in the test set.
 
-    This meta-estimator implements the formula of Theorem 2 of:
+    This meta-estimator implements the formula of Theorem 2 of [Elkan 2001]:
 
     The Foundations of Cost-Sensitive Learning, Charles Elkan, IJCAI 2001
     https://cseweb.ucsd.edu/~elkan/rescale.pdf
@@ -770,7 +770,7 @@ _ = plt.legend()
 #
 # Let's ask Claude to check that $p' = \frac{b'(p - pb)}{b - pb + b'p - b'b}$
 # can be rewritten as $p' = \text{expit}(\text{logit}(p) + \text{logit}(b') -
-# \text{logit}(b))$ (reusing the notation of Elkan's paper):
+# \text{logit}(b))$ (reusing the notation of [Elkan 2001]):
 #
 # Starting with the right-hand side: $$p' = \text{expit}(\text{logit}(p) +
 # \text{logit}(b') - \text{logit}(b))$$
@@ -816,5 +816,5 @@ _ = plt.legend()
 #
 # Therefore: $$p' = \frac{b'(p - pb)}{b - pb + b'p - b'b}$$
 #
-# This matches exactly the formula of Elkan's paper, completing the proof.
+# This matches exactly the formula of [Elkan 2001], completing the proof.
 # $\square$
