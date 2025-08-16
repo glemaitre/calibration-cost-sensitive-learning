@@ -7,7 +7,7 @@ website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/)
 Static HTML with precomputed results.
 
 - [![Launch JupyterLite](./book/images/jupyterlite_badge.svg 'Our JupyterLite
-website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/jupyterlite/tree)
+website')](https://probabl-ai.github.io/calibration-cost-sensitive-learning/jupyterlite/lab)
 In-browser interactive execution environment, no install needed.
 
 ## Local setup
