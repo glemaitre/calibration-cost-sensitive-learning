@@ -170,7 +170,6 @@ log_loss(y_past, true_proba_past)
 #   true probabilities?
 
 # %%
-
 # Write your answers below before scrolling down.
 #
 #
@@ -579,8 +578,6 @@ population_comparator.score_table()
 # The `expit` function inverse function is the logit function.
 
 # %%
-# %%
-
 # Write your answers below before scrolling down.
 #
 #
@@ -864,7 +861,6 @@ population_comparator_nonlinear.register_models(
 #
 # What can you conclude from the above results? Is this expected?
 
-# %%
 # %%
 # Write your answers below before scrolling down.
 #
