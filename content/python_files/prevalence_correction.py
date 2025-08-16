@@ -51,8 +51,8 @@
 # data generating process so as to make it possible to check that our proposed
 # training and evaluation methods can achieve that objective.
 #
-# <img src="../images/prevalence_correction_diagram.svg" width="800"
-# alt="Prevalence Correction Diagram"/>
+# <img src="https://raw.githubusercontent.com/probabl-ai/calibration-cost-sensitive-learning/refs/heads/main/content/images/prevalence_correction_diagram.svg"
+#  width="800" alt="Prevalence correction diagram" />
 
 # %% [markdown]
 # ## Data generating process
