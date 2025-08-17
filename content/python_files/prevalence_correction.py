@@ -6,9 +6,12 @@
 # imbalance in the common setting where the **data acquisition process itself
 # corrupts the prevalence of the rare class**.
 #
-# This setting is quite common in practice: for instance, to develop a
-# computer-aided diagnosis system, the data acquisition process might collect
-# data (feature values) for all known cases of a given rare disease of interest
+# ## Problem setting
+#
+# This setting is quite common in practice: let's consider the development of a
+# computer-aided diagnosis system to detect a rare disease that is best treated
+# as early as possible. The data acquisition process might collect data
+# (feature values) for all known historical cases of the disease of interest
 # (the positive class): **since the positive cases are rare, we don't want to
 # waste any of them** and want include them all in our dataset. However, it
 # would be **impossible to collect feature values for all the negative
@@ -35,6 +38,10 @@
 #   accurately reflect the expected performance of our model once deployed
 #   despite the prevalence shift.
 #
+# <img
+#  src="https://raw.githubusercontent.com/probabl-ai/calibration-cost-sensitive-learning/refs/heads/main/content/images/prevalence_correction_diagram.svg"
+#  width="800" alt="Prevalence correction diagram" />
+#
 # The lack of match of prevalence between the collected dataset and the
 # deployment setting is a result of cost or computational constraints that
 # prevent us from training and evaluating our predictive model directly on the
@@ -50,9 +57,6 @@
 # with the target population. We will use synthetic data generated from a known
 # data generating process so as to make it possible to check that our proposed
 # training and evaluation methods can achieve that objective.
-#
-# <img src="https://raw.githubusercontent.com/probabl-ai/calibration-cost-sensitive-learning/refs/heads/main/content/images/prevalence_correction_diagram.svg"
-#  width="800" alt="Prevalence correction diagram" />
 
 # %% [markdown]
 # ## Data generating process
@@ -1029,6 +1033,7 @@ population_comparator_nonlinear.score_table()
 #
 # Let's first check empirically with matplotlib:
 
+# %%
 
 def logit_prevalence_correction(p, target_prevalence, observed_prevalence):
     corrected_logits = logit(p) + logit(target_prevalence) - logit(observed_prevalence)
