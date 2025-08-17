@@ -740,7 +740,7 @@ weighted_test_set_comparator.score_table().merge(
 
 # %% [markdown]
 #
-# This confirms that the all the prevalence corrected models perform well when
+# This confirms that all the prevalence corrected models perform well when
 # evaluated on the weighted test set and that furthermore, their metric values
 # approximate well enough their expected population counterparts (up to 3
 # decimal places).
@@ -752,7 +752,7 @@ weighted_test_set_comparator.score_table().merge(
 # We will now check that the same prevalence correction methods can be applied
 # to non-linear models applied to non-linear classification problems.
 #
-# Let's start by defining a a non-linear data generating process with a low
+# Let's start by defining a nonlinear data generating process with a low
 # prevalence of the positive class.
 
 
@@ -826,7 +826,7 @@ X_train_nonlinear, X_test_nonlinear, y_train_nonlinear, y_test_nonlinear = (
 )
 # %% [markdown]
 #
-# ## Failure of logistic regression models on non-linear classification
+# ## Failure of logistic regression models on nonlinear classification
 #
 # Let's check that linear models perform sub-optimally on this dataset, even
 # after prevalence correction.
