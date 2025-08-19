@@ -871,7 +871,7 @@ float(model.best_threshold_)
 # notebook entitled "Cost-sensitive learning to optimize a business metrics" from this
 # course.
 
-# %% [markdown]``
+# %% [markdown]
 #
 # ## Take away
 #
