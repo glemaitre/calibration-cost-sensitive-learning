@@ -123,7 +123,7 @@ print(f"Class counts:\n {y.value_counts()}\n")
 # %%
 from sklearn.linear_model import LogisticRegression
 
-model = LogisticRegression(penalty=None).fit(X, y)
+model = LogisticRegression(C=np.inf).fit(X, y)
 
 # %% [markdown]
 #
@@ -191,7 +191,7 @@ def generate_imbalanced_dataset(true_coef, true_intercept, n_samples=10_000, see
 X_exercise, y_exercise = generate_imbalanced_dataset(
     true_coef, true_intercept, n_samples=10_000, seed=1
 )
-model_exercise = LogisticRegression(penalty=None).fit(X_exercise, y_exercise)
+model_exercise = LogisticRegression(C=np.inf).fit(X_exercise, y_exercise)
 
 comparison_coef_exercise = pd.DataFrame(
     {
@@ -406,7 +406,7 @@ from imblearn.under_sampling import RandomUnderSampler
 # classes.
 undersampling_model = make_pipeline(
     RandomUnderSampler(sampling_strategy=0.7, random_state=0),
-    LogisticRegression(penalty=None),
+    LogisticRegression(C=np.inf),
 ).fit(X, y)
 
 # %% [markdown]
@@ -617,7 +617,7 @@ print(classification_report(y, calibrated_model.predict(X)))
 # the resulting model is well calibrated when fitted on the original dataset.
 
 # %%
-model = LogisticRegression(penalty=None).fit(X, y)
+model = LogisticRegression(C=np.inf).fit(X, y)
 
 # %% [markdown]
 #
@@ -781,7 +781,7 @@ from sklearn.model_selection import FixedThresholdClassifier
 # %%
 threshold = 0.07
 model = FixedThresholdClassifier(
-    LogisticRegression(penalty=None), threshold=threshold
+    LogisticRegression(C=np.inf), threshold=threshold
 ).fit(X, y)
 
 # %%
@@ -847,7 +847,7 @@ from sklearn.model_selection import TunedThresholdClassifierCV
 # least 0.1.
 scoring = make_scorer(maximize_recall_under_constrained_precision, precision_level=0.1)
 model = TunedThresholdClassifierCV(
-    estimator=LogisticRegression(penalty=None), scoring=scoring, n_jobs=-1
+    estimator=LogisticRegression(C=np.inf), scoring=scoring, n_jobs=-1
 ).fit(X, y)
 
 # %%
