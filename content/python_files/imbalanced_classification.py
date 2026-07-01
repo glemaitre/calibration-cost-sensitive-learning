@@ -123,7 +123,7 @@ print(f"Class counts:\n {y.value_counts()}\n")
 # %%
 from sklearn.linear_model import LogisticRegression
 
-model = LogisticRegression(C=np.inf).fit(X, y)
+model = LogisticRegression(C=np.inf).fit(X, y) # C=np.inf means no regularization 
 
 # %% [markdown]
 #
@@ -249,7 +249,7 @@ bins = np.linspace(0, 1, 300)
 _ = (
     pd.concat([y_proba, y.to_frame()], axis=1)
     .groupby("target")["p_hat(y=1)"]
-    .plot.hist(bins=bins, alpha=0.5, legend=True, density=True)
+    .plot.hist(bins=bins, alpha=0.5, legend=True, density=True, xlabel="p_hat(y=1)")
 )
 
 # %% [markdown]
@@ -290,7 +290,7 @@ y.value_counts(normalize=True) * 100
 # %%
 from sklearn.calibration import CalibrationDisplay
 
-display = CalibrationDisplay.from_estimator(model, X, y, n_bins=10, strategy="quantile")
+display = CalibrationDisplay.from_estimator(model, X, y, n_bins=20, strategy="quantile")
 _ = display.ax_.set_title("Calibration curve of the unpenalized logistic regression")
 
 # %% [markdown]
@@ -402,8 +402,8 @@ print(classification_report(y, model.predict(X)))
 from imblearn.pipeline import make_pipeline
 from imblearn.under_sampling import RandomUnderSampler
 
-# Enforce a 0.7 ratio between the number of data points of the two positive and negative
-# classes.
+# Enforce a 0.7 ratio between the number of data points in the positive and negative
+# class.
 undersampling_model = make_pipeline(
     RandomUnderSampler(sampling_strategy=0.7, random_state=0),
     LogisticRegression(C=np.inf),
@@ -494,7 +494,7 @@ display = CalibrationDisplay.from_estimator(
     name="Model trained on under-sampled data",
 )
 display.ax_.set_title("Calibration curve of the under-sampled logistic regression")
-_ = display.ax_.legend(loc="upper right")
+_ = display.ax_.legend(loc="upper left")
 
 # %% [markdown]
 #
