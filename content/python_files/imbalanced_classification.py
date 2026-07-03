@@ -396,9 +396,6 @@ print(classification_report(y, model.predict(X)))
 # to pip install imbalanced-learn first:
 
 # %%
-# %pip install -q imbalanced-learn
-
-# %%
 from imblearn.pipeline import make_pipeline
 from imblearn.under_sampling import RandomUnderSampler
 
