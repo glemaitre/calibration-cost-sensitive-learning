@@ -618,7 +618,6 @@ print(classification_report(y, calibrated_model.predict(X)))
 
 # %%
 model = LogisticRegression(C=np.inf).fit(X, y)
-
 # %% [markdown]
 #
 # Now, let's say that we would like to get a model with a specific precision-recall
@@ -627,30 +626,13 @@ model = LogisticRegression(C=np.inf).fit(X, y)
 
 # %%
 import numpy as np
-from sklearn.metrics import make_scorer, precision_score, recall_score
+from sklearn.metrics import precision_score, recall_score, metric_at_thresholds
 
-# The following functionality is not yet implemented in scikit-learn and we use a bit
-# of private API to easily compute the precision and recall as a function of the
-# decision cut-off threshold. In the future, you can refer to the following PR that
-# implements such functionality:
-# https://github.com/scikit-learn/scikit-learn/pull/31338
-from sklearn.metrics._scorer import _CurveScorer as CurveScorer
-
-thresholds = np.linspace(0, 1, 100)
-precision_curve_scorer = CurveScorer.from_scorer(
-    make_scorer(precision_score, zero_division=0),
-    response_method="predict_proba",
-    thresholds=thresholds,
-)
-recall_curve_scorer = CurveScorer.from_scorer(
-    make_scorer(recall_score, zero_division=0),
-    response_method="predict_proba",
-    thresholds=thresholds,
-)
-
-# %%
-precision_scores, precision_thresholds = precision_curve_scorer(model, X, y)
-recall_scores, recall_thresholds = recall_curve_scorer(model, X, y)
+# `metric_at_tresholds` will compute the metric for all possible thresholds in `y_pred``
+# We round the predictions to only look at thresholds with two decimal places.
+y_pred = np.round(model.predict_proba(X)[:,-1],2)
+precision_scores, precision_thresholds = metric_at_thresholds(y, y_pred, precision_score)
+recall_scores, recall_thresholds = metric_at_thresholds(y, y_pred, recall_score)
 
 # %%
 # %pip install -q plotly nbformat
@@ -747,7 +729,7 @@ fig_plotly.show()
 #
 # Using the `FixedThresholdClassifier` meta-estimator, set the decision cut-off
 # threshold to the value for which the precision and recall curve intersect (i.e.
-# ~0.07). Check the calibration curve, the confusion matrix, and the classification
+# ~0.08). Check the calibration curve, the confusion matrix, and the classification
 # report.
 #
 # Is the model the resulting model well calibrated? What are the level of precision and
@@ -779,7 +761,7 @@ from sklearn.model_selection import FixedThresholdClassifier
 # ### Solution
 
 # %%
-threshold = 0.07
+threshold = 0.08
 model = FixedThresholdClassifier(
     LogisticRegression(C=np.inf), threshold=threshold
 ).fit(X, y)
@@ -823,7 +805,7 @@ print(classification_report(y, model.predict(X)))
 # split.
 #
 # Below, we show a case where we want to maximize the recall score but such that the
-# model reach a minimum precision score. We therefore need to create a custom function
+# model reaches a minimum precision score. We therefore need to create a custom function
 # that can be used by the `TunedThresholdClassifierCV` meta-estimator.
 
 
@@ -841,6 +823,7 @@ def maximize_recall_under_constrained_precision(y_true, y_pred, precision_level)
 
 
 # %%
+from sklearn.metrics import make_scorer
 from sklearn.model_selection import TunedThresholdClassifierCV
 
 # Create a scorer that maximizes the recall but such that the precision is at
