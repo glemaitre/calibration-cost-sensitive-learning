@@ -719,6 +719,8 @@ fig_plotly.show()
 # y-axis. Considering all points above this line, seek for the maximum recall and deduce
 # the corresponding optimal threshold. In this case we should find 0.08.
 #
+
+# %%
 fig_plotly.add_hline(y=0.1, line_dash="dash", row=1, col=2)
 fig_plotly.show()
 
