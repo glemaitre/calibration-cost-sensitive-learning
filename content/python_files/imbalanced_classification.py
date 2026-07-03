@@ -632,9 +632,6 @@ precision_scores, precision_thresholds = metric_at_thresholds(y, y_pred, precisi
 recall_scores, recall_thresholds = metric_at_thresholds(y, y_pred, recall_score)
 
 # %%
-# %pip install -q plotly nbformat
-
-# %%
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
