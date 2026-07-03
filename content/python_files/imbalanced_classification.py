@@ -721,10 +721,14 @@ fig_plotly.show()
 # like our automated failure detection system to maximize the recall level.
 #
 # Thus, by looking at the precision-recall curve above, we could impose a minimum level
-# of precision of 10%. You can mentally draw an horizontal line at 0.1 on the y-axis and
-# then consider all points above this line and seek for the maximum recall and deduce
-# the corresponding optimal threshold. In this case we should find 0.07.
+# of precision of 10%. We can illustrate this by drawing a horizontal line at 0.1 on the
+# y-axis. Considering all points above this line, seek for the maximum recall and deduce
+# the corresponding optimal threshold. In this case we should find 0.08.
 #
+fig_plotly.add_hline(y=0.1, line_dash="dash", row=1, col=2)
+fig_plotly.show()
+
+# %%
 # ### Exercise
 #
 # Using the `FixedThresholdClassifier` meta-estimator, set the decision cut-off
