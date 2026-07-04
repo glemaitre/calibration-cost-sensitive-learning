@@ -28,11 +28,11 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=a3416100" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
   
@@ -175,17 +175,28 @@
         <ul class="nav bd-sidenav bd-sidenav__home-link">
             <li class="toctree-l1">
                 <a class="reference internal" href="../../intro.html">
-                    Probablistic classification and cost-sensitive learning
+                    Probabilistic classification and cost-sensitive learning
                 </a>
             </li>
         </ul>
-        <ul class="current nav bd-sidenav">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">The problem of imbalanced classification</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="imbalanced_classification.html">Imbalanced classification: pitfalls and solutions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prevalence_correction.html">Handling prevalence shift in imbalanced classification problems</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Cost-sensitive learning</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="cost_sensitive_learning.html">Cost-sensitive learning to optimize business metrics</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into classification metrics</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="classification_metrics.html">Choosing a classification metric</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into calibration</span></p>
+<ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">What is a calibration curve?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="different_calibration_curves.html">Reading calibration curves</a></li>
 <li class="toctree-l1"><a class="reference internal" href="miscalibration_under_over_fit.html">Miscalibration caused by inappropriate hyperparameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="miscalibration_reweighting.html">Miscalibration caused by data points reweighting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cost_sensitive_learning.html">Cost-sensitive learning to optimize business metrics</a></li>
 </ul>
 
     </div>
@@ -358,7 +369,9 @@ document.write(`
   </button>
 `);
 </script>
-
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
 </div></div>
       
     </div>
@@ -374,6 +387,17 @@ document.write(`
     <div id="print-main-content">
         <div id="jb-print-toc">
             
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#exercise">Exercise:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#solution">Solution:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Exercise:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Solution:</a></li>
+</ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -392,27 +416,27 @@ own calibration curve.</p>
 without going into details on the model used to generate the predictions. We later
 discuss the implications of the data modeling process on the calibration curve.</p>
 <p>So let’s first generate some predictions. The generative process is located in the
-file <code class="docutils literal notranslate"><span class="pre">_generate_predictions.py</span></code>. This process stores the true labels and the
+file <code class="docutils literal notranslate"><span class="pre">_generate_predictions.py</span></code>. This process stores the observed labels and the
 predicted probability estimates of several models into the <code class="docutils literal notranslate"><span class="pre">predictions</span></code> folder.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make sure to have scikit-learn &gt;= 1.5</span>
-<span class="kn">import</span> <span class="nn">sklearn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sklearn</span>
+
 <span class="n">sklearn</span><span class="o">.</span><span class="n">__version__</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;1.5.1&#39;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;1.7.1&#39;
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Equivalent to the magic command &quot;%run _generate_predictions.py&quot; but it allows this</span>
-<span class="c1"># file to be executed as a Python script.</span>
-<span class="kn">from</span> <span class="nn">IPython</span> <span class="kn">import</span> <span class="n">get_ipython</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># allows this file to be executed as a Python script.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_ipython</span>
 
 <span class="n">ipython</span> <span class="o">=</span> <span class="n">get_ipython</span><span class="p">()</span>
 <span class="n">ipython</span><span class="o">.</span><span class="n">run_line_magic</span><span class="p">(</span><span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="s2">&quot;../python_files/_generate_predictions.py&quot;</span><span class="p">)</span>
@@ -420,12 +444,13 @@ predicted probability estimates of several models into the <code class="docutils
 </div>
 </div>
 </div>
-<p>Let’s load a the true labels and the predicted probabilities of one of the models.</p>
+<p>Let’s load a the observed labels and the predicted probabilities of one of
+the models.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="n">y_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;../predictions/y_true.npy&quot;</span><span class="p">)</span>
+<span class="n">y_observed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;../predictions/y_true.npy&quot;</span><span class="p">)</span>
 <span class="n">y_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;../predictions/y_prob_2.npy&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -433,18 +458,18 @@ predicted probability estimates of several models into the <code class="docutils
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">y_true</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">y_observed</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([0, 0, 1, ..., 0, 1, 0])
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([0, 0, 1, ..., 0, 1, 0], shape=(50000,))
 </pre></div>
 </div>
 </div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">y_true</span></code> contains the true labels. In this case, we face a binary classification
-problem.</p>
+<p><code class="docutils literal notranslate"><span class="pre">y_observed</span></code> contains the observed labels. In this case, we face a binary
+classification problem.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">y_prob</span>
@@ -453,20 +478,20 @@ problem.</p>
 </div>
 <div class="cell_output docutils container">
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([0.01301041, 0.51749109, 0.73808646, ..., 0.09744258, 0.22943148,
-       0.36252617])
+       0.36252617], shape=(50000,))
 </pre></div>
 </div>
 </div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">y_prob</span></code> contains the predicted probabilities of the positive class estimated by a
-given model.</p>
-<p>As discussed earlier, we could evaluate the discriminative power of the model using
-a metric such as the ROC-AUC score.</p>
+<p><code class="docutils literal notranslate"><span class="pre">y_prob</span></code> contains the predicted probabilities of the positive class estimated
+by a given model.</p>
+<p>As discussed earlier, we could evaluate the discriminative power of the model
+using a metric such as the ROC-AUC score.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_auc_score</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">roc_auc_score</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ROC AUC: </span><span class="si">{</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="w"> </span><span class="n">y_prob</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ROC AUC: </span><span class="si">{</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_observed</span><span class="p">,</span><span class="w"> </span><span class="n">y_prob</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -476,34 +501,37 @@ a metric such as the ROC-AUC score.</p>
 </div>
 </div>
 </div>
-<p>The score is much above 0.5 and it means that our model is able to discriminate
-between the two classes. However, this score does not tell us if the predicted
-probabilities are well calibrated.</p>
-<p>We can provide an example of a well-calibrated probability: for a given sample, the
-predicted probabilities is considered well-calibrated if the proportion of samples
-where this probability is predicted is equal to the probability itself.</p>
-<p>It is therefore possible to group predictions into bins based on their predicted
-probabilities and to calculate the proportion of positive samples in each bin and
-compare it to the average predicted probability in the bin.</p>
-<p>Scikit-learn provide a utility to plot this graphical representation. It is available
-through the class <code class="docutils literal notranslate"><span class="pre">sklearn.calibration.CalibrationDisplay</span></code>.</p>
+<p>The score is much above 0.5 and it means that our model is able to
+discriminate between the two classes. However, this score does not tell us if
+the predicted probabilities are well calibrated.</p>
+<p>We can provide an example of a well-calibrated probability: for a given
+sample, the predicted probabilities is considered well-calibrated if the
+proportion of samples where this probability is predicted is equal to the
+probability itself.</p>
+<p>It is therefore possible to group predictions into bins based on their
+predicted probabilities and to calculate the proportion of positive samples
+in each bin and compare it to the average predicted probability in the bin.</p>
+<p>Scikit-learn provide a utility to plot this graphical representation. It is
+available through the class <code class="docutils literal notranslate"><span class="pre">sklearn.calibration.CalibrationDisplay</span></code>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">sklearn.calibration</span> <span class="kn">import</span> <span class="n">CalibrationDisplay</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibrationDisplay</span>
 
 <span class="n">n_bins</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">disp</span> <span class="o">=</span> <span class="n">CalibrationDisplay</span><span class="o">.</span><span class="n">from_predictions</span><span class="p">(</span>
-    <span class="n">y_true</span><span class="p">,</span> <span class="n">y_prob</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;uniform&quot;</span>
+    <span class="n">y_observed</span><span class="p">,</span> <span class="n">y_prob</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;uniform&quot;</span>
 <span class="p">)</span>
 <span class="n">_</span> <span class="o">=</span> <span class="n">disp</span><span class="o">.</span><span class="n">ax_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlim</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../../_images/3c3a1aa6b093721e244811f1a6681f515a02a0fc8fe6cdf873dcd64108b89bb4.png" src="../../_images/3c3a1aa6b093721e244811f1a6681f515a02a0fc8fe6cdf873dcd64108b89bb4.png" />
+<img alt="../../_images/67a3576ab2aea849795bc90e86285802940be9074e99256ed86ee50e180fefc6.png" src="../../_images/67a3576ab2aea849795bc90e86285802940be9074e99256ed86ee50e180fefc6.png" />
 </div>
 </div>
+<section id="exercise">
+<h2>Exercise:<a class="headerlink" href="#exercise" title="Link to this heading">#</a></h2>
 <p>As a pedagogical exercise, we will build the calibration curve from scratch. This
 will help us understand the underlying process. The calibration curve is built by
 following these steps:</p>
@@ -514,7 +542,60 @@ object where we get the bin identifier for each sample.</p></li>
 </ol>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Create a DataFrame with the observed labels, predicted probabilities, and bin
+identifier.</p></li>
+</ol>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Group the DataFrame by the bin identifier and calculate the mean of the
+observed labels and the predicted probabilities.</p></li>
+</ol>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Plot the calibration curve by plotting the average predicted probabilities
+against the fraction of positive samples.</p></li>
+</ol>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="solution">
+<h2>Solution:<a class="headerlink" href="#solution" title="Link to this heading">#</a></h2>
+<p>As a pedagogical exercise, we will build the calibration curve from scratch. This
+will help us understand the underlying process. The calibration curve is built by
+following these steps:</p>
+<ol class="arabic simple">
+<li><p>Bin the predicted probabilities (i.e. <code class="docutils literal notranslate"><span class="pre">y_prob</span></code>) into 10 bins. You can use the
+<code class="docutils literal notranslate"><span class="pre">pd.cut</span></code> function from the <code class="docutils literal notranslate"><span class="pre">pandas</span></code> library. It will return a <code class="docutils literal notranslate"><span class="pre">Categorical</span></code>
+object where we get the bin identifier for each sample.</p></li>
+</ol>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="n">bin_identifier</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">y_prob</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">)</span>
 </pre></div>
@@ -522,14 +603,14 @@ object where we get the bin identifier for each sample.</p></li>
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>Create a DataFrame with the true labels, predicted probabilities, and bin
-identifier.</p></li>
+<li><p>Create a DataFrame with the observed labels, predicted probabilities, and
+bin identifier.</p></li>
 </ol>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">predictions</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
     <span class="p">{</span>
-        <span class="s2">&quot;y_true&quot;</span><span class="p">:</span> <span class="n">y_true</span><span class="p">,</span>
+        <span class="s2">&quot;y_observed&quot;</span><span class="p">:</span> <span class="n">y_observed</span><span class="p">,</span>
         <span class="s2">&quot;y_prob&quot;</span><span class="p">:</span> <span class="n">y_prob</span><span class="p">,</span>
         <span class="s2">&quot;bin_identifier&quot;</span><span class="p">:</span> <span class="n">bin_identifier</span><span class="p">,</span>
     <span class="p">}</span>
@@ -557,7 +638,7 @@ identifier.</p></li>
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>y_true</th>
+      <th>y_observed</th>
       <th>y_prob</th>
       <th>bin_identifier</th>
     </tr>
@@ -635,17 +716,12 @@ identifier.</p></li>
 </div></div></div>
 </div>
 <ol class="arabic simple" start="3">
-<li><p>Group the DataFrame by the bin identifier and calculate the mean of the true
-labels and the predicted probabilities.</p></li>
+<li><p>Group the DataFrame by the bin identifier and calculate the mean of the
+observed labels and the predicted probabilities.</p></li>
 </ol>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">avg_predicted_probabilities</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
-    <span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span><span class="o">.</span><span class="n">y_prob</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-<span class="n">fraction_positive_samples</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
-    <span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span><span class="o">.</span><span class="n">y_true</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mean_per_bin</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -657,7 +733,7 @@ against the fraction of positive samples.</p></li>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">avg_predicted_probabilities</span><span class="p">,</span> <span class="n">fraction_positive_samples</span><span class="p">,</span> <span class="s2">&quot;s-&quot;</span><span class="p">)</span>
+<span class="n">mean_per_bin</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="s2">&quot;y_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;y_observed&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;k:&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Perfectly calibrated&quot;</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
@@ -672,7 +748,7 @@ against the fraction of positive samples.</p></li>
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../../_images/ba42a2403ef3b957994dc035417dd10fd5c60b1208c585928cfb751f16af55c8.png" src="../../_images/ba42a2403ef3b957994dc035417dd10fd5c60b1208c585928cfb751f16af55c8.png" />
+<img alt="../../_images/55bda7e067b78c84e32871204247c3e6e57b1b2fb681cd71091f63ee0b62e96a.png" src="../../_images/55bda7e067b78c84e32871204247c3e6e57b1b2fb681cd71091f63ee0b62e96a.png" />
 </div>
 </div>
 <p>Scikit-learn also provides a parameter <code class="docutils literal notranslate"><span class="pre">strategy</span></code> that is the strategy to adopt to
@@ -683,37 +759,47 @@ can show it on our previous example:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CalibrationDisplay</span><span class="o">.</span><span class="n">from_predictions</span><span class="p">(</span>
-    <span class="n">y_true</span><span class="p">,</span> <span class="n">y_prob</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;quantile&quot;</span>
+    <span class="n">y_observed</span><span class="p">,</span> <span class="n">y_prob</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;quantile&quot;</span>
 <span class="p">)</span>
 <span class="n">_</span> <span class="o">=</span> <span class="n">disp</span><span class="o">.</span><span class="n">ax_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlim</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../../_images/05916db087b7f0dfe82fd7f45425e033a51cbace75d227ff27864b04a04520ba.png" src="../../_images/05916db087b7f0dfe82fd7f45425e033a51cbace75d227ff27864b04a04520ba.png" />
+<img alt="../../_images/598937e6a88d6bc5833bc533845dd1a44b81b1e7e9e31d23fdb720eeaa331375.png" src="../../_images/598937e6a88d6bc5833bc533845dd1a44b81b1e7e9e31d23fdb720eeaa331375.png" />
 </div>
 </div>
+</section>
+<section id="id1">
+<h2>Exercise:<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
 <p>Modify your previous implementation such that <code class="docutils literal notranslate"><span class="pre">pd.cut</span></code> uses quantiles to create the
 bins instead of the default uniform behaviour. Specifically, look at the <code class="docutils literal notranslate"><span class="pre">bins</span></code>
-parameter and the function <code class="docutils literal notranslate"><span class="pre">np.quantile</span></code>.</p>
+parameter in <code class="docutils literal notranslate"><span class="pre">pd.cut</span></code> and the function <code class="docutils literal notranslate"><span class="pre">np.quantile</span></code> to compute the quantile from
+the predicted probabilities in <code class="docutils literal notranslate"><span class="pre">y_prob</span></code> to create the bins.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bin_identifier</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">y_prob</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">y_prob</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)))</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="id2">
+<h2>Solution:<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">y_prob</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">))</span>
+<span class="n">bin_identifier</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">y_prob</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">)</span>
 <span class="n">predictions</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
     <span class="p">{</span>
-        <span class="s2">&quot;y_true&quot;</span><span class="p">:</span> <span class="n">y_true</span><span class="p">,</span>
+        <span class="s2">&quot;y_observed&quot;</span><span class="p">:</span> <span class="n">y_observed</span><span class="p">,</span>
         <span class="s2">&quot;y_prob&quot;</span><span class="p">:</span> <span class="n">y_prob</span><span class="p">,</span>
         <span class="s2">&quot;bin_identifier&quot;</span><span class="p">:</span> <span class="n">bin_identifier</span><span class="p">,</span>
     <span class="p">}</span>
 <span class="p">)</span>
-<span class="n">avg_predicted_probabilities</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
-    <span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span><span class="o">.</span><span class="n">y_prob</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-<span class="n">fraction_positive_samples</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
-    <span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span><span class="o">.</span><span class="n">y_true</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">mean_per_bin</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;bin_identifier&quot;</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 <span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">avg_predicted_probabilities</span><span class="p">,</span> <span class="n">fraction_positive_samples</span><span class="p">,</span> <span class="s2">&quot;s-&quot;</span><span class="p">)</span>
+<span class="n">mean_per_bin</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="s2">&quot;y_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;y_observed&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;k:&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Perfectly calibrated&quot;</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
@@ -728,9 +814,10 @@ parameter and the function <code class="docutils literal notranslate"><span clas
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../../_images/50b6f89a7bb75d808f31a4b2e1bf45cabefa4bdec36ab0e701dca3f7b83fce39.png" src="../../_images/50b6f89a7bb75d808f31a4b2e1bf45cabefa4bdec36ab0e701dca3f7b83fce39.png" />
+<img alt="../../_images/23686b262674d46bd7b4d4d211dccb9211a3f7463dbce3262179cf0922c7badc.png" src="../../_images/23686b262674d46bd7b4d4d211dccb9211a3f7463dbce3262179cf0922c7badc.png" />
 </div>
 </div>
+</section>
 </section>
 
     <script type="text/x-thebe-config">
@@ -787,6 +874,24 @@ parameter and the function <code class="docutils literal notranslate"><span clas
             </div>
             
             
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#exercise">Exercise:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#solution">Solution:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Exercise:</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Solution:</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
               
             
           </div>

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Probablistic classification and cost-sensitive learning &#8212; Probabilistic calibration of cost-sensitive learning</title>
+    <title>Probabilistic classification and cost-sensitive learning &#8212; Probabilistic calibration of cost-sensitive learning</title>
   
   
   
@@ -28,11 +28,11 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=a3416100" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
   
@@ -62,7 +62,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'intro';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Choosing a classification metric" href="content/notebooks/classification_metrics.html" />
+    <link rel="next" title="Imbalanced classification: pitfalls and solutions" href="content/notebooks/imbalanced_classification.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -178,17 +178,28 @@
         <ul class="nav bd-sidenav bd-sidenav__home-link">
             <li class="toctree-l1 current active">
                 <a class="reference internal" href="#">
-                    Probablistic classification and cost-sensitive learning
+                    Probabilistic classification and cost-sensitive learning
                 </a>
             </li>
         </ul>
-        <ul class="nav bd-sidenav">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">The problem of imbalanced classification</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/imbalanced_classification.html">Imbalanced classification: pitfalls and solutions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/prevalence_correction.html">Handling prevalence shift in imbalanced classification problems</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Cost-sensitive learning</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/cost_sensitive_learning.html">Cost-sensitive learning to optimize business metrics</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into classification metrics</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="content/notebooks/classification_metrics.html">Choosing a classification metric</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into calibration</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="content/notebooks/build_calibration_curve.html">What is a calibration curve?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="content/notebooks/different_calibration_curves.html">Reading calibration curves</a></li>
 <li class="toctree-l1"><a class="reference internal" href="content/notebooks/miscalibration_under_over_fit.html">Miscalibration caused by inappropriate hyperparameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/miscalibration_reweighting.html">Miscalibration caused by data points reweighting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/cost_sensitive_learning.html">Cost-sensitive learning to optimize business metrics</a></li>
 </ul>
 
     </div>
@@ -374,7 +385,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>Probablistic classification and cost-sensitive learning</h1>
+    <h1>Probabilistic classification and cost-sensitive learning</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -386,7 +397,9 @@ document.write(`
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#table-of-contents">Table of contents</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#slides">Slides</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#notebooks">Notebooks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#notebooks">Notebooks </a><ul class="nav section-nav flex-column">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-the-notebooks-locally">Running the notebooks locally</a><ul class="nav section-nav flex-column">
@@ -406,29 +419,48 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section class="tex2jax_ignore mathjax_ignore" id="probablistic-classification-and-cost-sensitive-learning">
-<h1>Probablistic classification and cost-sensitive learning<a class="headerlink" href="#probablistic-classification-and-cost-sensitive-learning" title="Link to this heading">#</a></h1>
+  <section class="tex2jax_ignore mathjax_ignore" id="probabilistic-classification-and-cost-sensitive-learning">
+<h1>Probabilistic classification and cost-sensitive learning<a class="headerlink" href="#probabilistic-classification-and-cost-sensitive-learning" title="Link to this heading">#</a></h1>
 <p>This tutorial introduces how to assess the quality of probabilistic classifiers
 and how to derive optimal decision policies for a user specified cost model.</p>
 <section id="table-of-contents">
 <h2>Table of contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">#</a></h2>
 <section id="slides">
 <h3>Slides<a class="headerlink" href="#slides" title="Link to this heading">#</a></h3>
-<p><a class="reference external" href="https://docs.google.com/presentation/d/1EW3alaVuUKzk8aCWONxpBQQ1LqCmFHNixIwbnfgjuSA/edit?usp=sharing">Introductory concepts</a></p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.google.com/presentation/d/1EBCSCDQ3nTPaKZGx9ZLWXfvkD1Y-ODo9j_ETAnx5zLQ/edit?usp=sharing">Introductory concepts</a></p></li>
+<li><p><a class="reference external" href="https://www.youtube.com/watch?v=-gYnfA0e5ic">Video of the presentation made at PyData Paris 2024</a></p></li>
+</ul>
 </section>
 <section id="notebooks">
-<h3>Notebooks<a class="headerlink" href="#notebooks" title="Link to this heading">#</a></h3>
+<h3>Notebooks <a class="reference external" href="https://probabl-ai.github.io/calibration-cost-sensitive-learning/jupyterlite/lab"><img alt="Launch JupyterLite" src="_images/jupyterlite_badge.svg" /></a><a class="headerlink" href="#notebooks" title="Link to this heading">#</a></h3>
 <div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The problem of imbalanced classification</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/classification_metrics.html">Choosing a classification metric</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/build_calibration_curve.html">What is a calibration curve?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/different_calibration_curves.html">Reading calibration curves</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/miscalibration_under_over_fit.html">Miscalibration caused by inappropriate hyperparameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="content/notebooks/miscalibration_reweighting.html">Miscalibration caused by data points reweighting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/imbalanced_classification.html">Imbalanced classification: pitfalls and solutions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/prevalence_correction.html">Handling prevalence shift in imbalanced classification problems</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Cost-sensitive learning</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="content/notebooks/cost_sensitive_learning.html">Cost-sensitive learning to optimize business metrics</a></li>
 </ul>
 </div>
-<p>Browse the <a class="reference external" href="https://probabl-ai.github.io/calibration-cost-sensitive-learning/jupyterlite">notebooks with jupyterlite</a>.</p>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into classification metrics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/classification_metrics.html">Choosing a classification metric</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Deep-dive into calibration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/build_calibration_curve.html">What is a calibration curve?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/different_calibration_curves.html">Reading calibration curves</a></li>
+<li class="toctree-l1"><a class="reference internal" href="content/notebooks/miscalibration_under_over_fit.html">Miscalibration caused by inappropriate hyperparameters</a></li>
+</ul>
+</div>
 </section>
 </section>
 <section id="running-the-notebooks-locally">
@@ -486,11 +518,11 @@ file as notebook, you need to right click on the file and select
                   
 <div class="prev-next-area">
     <a class="right-next"
-       href="content/notebooks/classification_metrics.html"
+       href="content/notebooks/imbalanced_classification.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Choosing a classification metric</p>
+        <p class="prev-next-title">Imbalanced classification: pitfalls and solutions</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -512,7 +544,9 @@ file as notebook, you need to right click on the file and select
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#table-of-contents">Table of contents</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#slides">Slides</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#notebooks">Notebooks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#notebooks">Notebooks </a><ul class="nav section-nav flex-column">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-the-notebooks-locally">Running the notebooks locally</a><ul class="nav section-nav flex-column">
